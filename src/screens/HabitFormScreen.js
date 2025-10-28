@@ -24,8 +24,58 @@ import ColorSelector from "../components/ColorSelector";
 import DaySelector from "../components/DaySelector";
 import CounterInput from "../components/CounterInput";
 
-const presetColors = ["#02A394", "#542AB4", "#E67E22", "#3498DB", "#F1C40F", "#9B59B6", "#1ABC9C"];
-const emojiOptions = ["💧", "📖", "🏃‍♂️", "🧘‍♀️", "🍎", "🛏️", "🧠", "☀️"];
+const presetColors = [
+  "#542AB4",
+"#4A3FB2",
+"#4054B0",
+"#3679AE",
+"#2C8EAC",
+"#22A3AA",
+"#1AA59E",
+"#12A692",
+"#0AA686",
+"#08A177",
+"#1F8E66",
+"#357B56",
+"#4A6846",
+"#605636",
+"#764326",
+"#8C3116",
+"#A21E06",
+"#FD1900"
+];
+const emojiOptions = [
+  "💧",
+  "📖",
+  "🏃‍♂️",
+  "🧘‍♀️",
+  "🍎",
+  "🛏️",
+  "🧠",
+  "☀️",
+  "🚭",
+  "👨‍💻",
+  "🎨",
+  "🎵",
+  "🌿",
+  "🚴‍♀️",
+  "🍳",
+  "✈️",
+  "💤",
+  "💡",
+  "🎉",
+  "🧴",
+  "🎮",
+  "📵",
+  "📝",
+  "📅",
+  "🚿",
+  "🕯️",
+  "🧰",
+  "📈",
+  "🎁",
+  "🪴",
+];
 const days = ["L", "M", "X", "J", "V", "S", "D"];
 
 export default function HabitFormScreen({ navigation }) {
@@ -90,36 +140,16 @@ export default function HabitFormScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[globalStyles.container, { backgroundColor: theme.colors.background }]}
+      style={[
+        globalStyles.container,
+        { backgroundColor: theme.colors.background },
+      ]}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 50 }}
       >
-        {/* Título */}
-        <Text style={[globalStyles.title, { color: theme.colors.primary }]}>
-          Nuevo hábito
-        </Text>
-
-        {/* Campo: Nombre */}
-        <HabitFormField label="Nombre del hábito" theme={theme}>
-          <TextInput
-            style={[
-              globalStyles.input,
-              {
-                borderColor: theme.colors.border,
-                color: theme.colors.text,
-                backgroundColor: theme.mode === "dark" ? theme.colors.surface : "#FFFFFF",
-              },
-            ]}
-            placeholder="Ejemplo: Leer 10 páginas"
-            placeholderTextColor={theme.colors.placeholder}
-            value={name}
-            onChangeText={setName}
-          />
-        </HabitFormField>
-
         {/* Selección de ícono */}
         <HabitFormField label="Selecciona un ícono" theme={theme}>
           <View style={styles.emojiRow}>
@@ -130,8 +160,10 @@ export default function HabitFormScreen({ navigation }) {
                 style={[
                   styles.emojiCircle,
                   {
-                    borderColor: e === emoji ? theme.colors.text : theme.colors.border,
-                    backgroundColor: e === emoji ? theme.colors.surface : "transparent",
+                    borderColor:
+                      e === emoji ? theme.colors.text : theme.colors.border,
+                    backgroundColor:
+                      e === emoji ? theme.colors.surface : "transparent",
                   },
                 ]}
               >
@@ -139,6 +171,25 @@ export default function HabitFormScreen({ navigation }) {
               </TouchableOpacity>
             ))}
           </View>
+        </HabitFormField>
+
+        {/* Campo: Nombre */}
+        <HabitFormField label="Nombre del hábito" theme={theme}>
+          <TextInput
+            style={[
+              globalStyles.input,
+              {
+                borderColor: theme.colors.border,
+                color: theme.colors.text,
+                backgroundColor:
+                  theme.mode === "dark" ? theme.colors.surface : "#FFFFFF",
+              },
+            ]}
+            placeholder="Ejemplo: Leer 10 páginas"
+            placeholderTextColor={theme.colors.placeholder}
+            value={name}
+            onChangeText={setName}
+          />
         </HabitFormField>
 
         {/* Selección de color */}
@@ -186,7 +237,10 @@ export default function HabitFormScreen({ navigation }) {
 
         {/* Botón guardar */}
         <TouchableOpacity
-          style={[globalStyles.button, { marginTop: 30, opacity: saving ? 0.6 : 1 }]}
+          style={[
+            globalStyles.button,
+            { marginTop: 30, opacity: saving ? 0.6 : 1 },
+          ]}
           onPress={handleSave}
           disabled={saving}
         >

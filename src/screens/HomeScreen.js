@@ -1,130 +1,202 @@
-// src/screens/HomeScreen.js
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState, useCallback } from "react";
 import {
-  SafeAreaView,
-  FlatList,
+  View,
   Text,
-  Alert,
+  FlatList,
   StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native"; // 👈 importante
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
-import { globalStyles } from "../styles/globalStyles";
 import { db } from "../services/firebase";
 import {
   collection,
+  getDocs,
   doc,
-  onSnapshot,
   updateDoc,
-  getDoc,
+  addDoc,
+  deleteDoc,
+  query,
+  where,
+  Timestamp,
 } from "firebase/firestore";
-
-// Componentes reutilizables
+import { globalStyles } from "../styles/globalStyles";
 import FloatingButton from "../components/FloatingButton";
-import HabitCard from "../components/HabitCard";
-import HeaderTitle from "../components/HeaderTitle";
+import ProgressBar from "../components/ProgressBar";
+import HabitItem from "../components/HabitItem";
 
 export default function HomeScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
   const { user } = useContext(AuthContext);
-
   const [habits, setHabits] = useState([]);
+  const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [completedHabits, setCompletedHabits] = useState({});
 
-  const motivationalPhrases = [
-    "¡Sigue así, vas por buen camino! 💪",
-    "¡Excelente trabajo, un paso más hacia tu meta! 🚀",
-    "¡La constancia es tu mejor aliada! 🌟",
-    "¡Orgulloso de ti, sigue avanzando! 🔥",
-  ];
+  const getTodayKey = () => {
+    const now = new Date();
+    return new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    ).toISOString();
+  };
 
-  // Cargar hábitos en tiempo real
-  useEffect(() => {
-    if (!user) return;
+  // 🔹 Cargar hábitos cada vez que la pantalla gana foco
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
 
-    const userRef = doc(db, "users", user.uid);
-    const habitsRef = collection(userRef, "habits");
+      const fetchHabits = async () => {
+        setLoading(true);
+        try {
+          const habitsRef = collection(db, "users", user.uid, "habits");
+          const snapshot = await getDocs(habitsRef);
+          const data = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
-    const unsubscribe = onSnapshot(habitsRef, (snapshot) => {
-      const fetchedHabits = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setHabits(fetchedHabits);
-      setLoading(false);
-    });
+          if (isActive) {
+            setHabits(data);
 
-    return () => unsubscribe();
-  }, [user]);
+            // Cargar logs de hoy
+            const todayKey = getTodayKey();
+            const logsByHabit = {};
+            for (const habit of data) {
+              const logsRef = collection(
+                db,
+                "users",
+                user.uid,
+                "habits",
+                habit.id,
+                "logs"
+              );
+              const q = query(
+                logsRef,
+                where("dateKey", "==", todayKey),
+                where("completed", "==", true)
+              );
+              const logsSnap = await getDocs(q);
+              logsByHabit[habit.id] = !logsSnap.empty;
+            }
 
-  // Manejar hábito completado
-  const handleCompleteHabit = async (habitId) => {
+            setCompletedHabits(logsByHabit);
+            calculateProgress(logsByHabit);
+          }
+        } catch (error) {
+          console.error("Error al cargar hábitos:", error);
+          Alert.alert("Error", "No se pudieron cargar los hábitos.");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchHabits();
+
+      // Limpieza cuando se desmonta
+      return () => {
+        isActive = false;
+      };
+    }, [user])
+  );
+
+  const calculateProgress = (logsByHabit) => {
+    const total = Object.keys(logsByHabit).length;
+    const completed = Object.values(logsByHabit).filter(Boolean).length;
+    setProgress(total ? completed / total : 0);
+  };
+
+  const handleToggleHabit = async (habit) => {
     try {
-      const userRef = doc(db, "users", user.uid);
-      const habitDoc = doc(userRef, "habits", habitId);
-      const currentData = await getDoc(habitDoc);
-      const currentCount = currentData.exists()
-        ? currentData.data().completedCount || 0
-        : 0;
+      const todayKey = getTodayKey();
+      const habitRef = doc(db, "users", user.uid, "habits", habit.id);
+      const logsRef = collection(habitRef, "logs");
 
-      await updateDoc(habitDoc, { completedCount: currentCount + 1 });
+      if (completedHabits[habit.id]) {
+        // Desmarcar: eliminar log del día
+        const q = query(logsRef, where("dateKey", "==", todayKey));
+        const snapshot = await getDocs(q);
+        snapshot.forEach(async (d) => await deleteDoc(doc(logsRef, d.id)));
 
-      const randomPhrase =
-        motivationalPhrases[
-          Math.floor(Math.random() * motivationalPhrases.length)
-        ];
+        await updateDoc(habitRef, {
+          completedCount: Math.max((habit.completedCount || 1) - 1, 0),
+        });
 
-      Alert.alert("¡Buen trabajo!", randomPhrase);
+        setCompletedHabits((prev) => ({ ...prev, [habit.id]: false }));
+      } else {
+        // Marcar: agregar log
+        const logData = {
+          date: Timestamp.fromDate(new Date()),
+          dateKey: todayKey,
+          completed: true,
+        };
+        await addDoc(logsRef, logData);
+
+        await updateDoc(habitRef, {
+          completedCount: (habit.completedCount || 0) + 1,
+        });
+
+        setCompletedHabits((prev) => ({ ...prev, [habit.id]: true }));
+      }
+
+      calculateProgress({
+        ...completedHabits,
+        [habit.id]: !completedHabits[habit.id],
+      });
     } catch (error) {
       console.error("Error al actualizar hábito:", error);
+      Alert.alert("Error", "No se pudo actualizar el hábito.");
     }
   };
 
-  // Fecha actual
-  const today = new Date();
-  const formattedDate = today.toLocaleDateString("es-ES", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const renderHabit = ({ item }) => (
+    <HabitItem
+      item={item}
+      theme={theme}
+      isCompleted={!!completedHabits[item.id]}
+      onToggle={() => handleToggleHabit(item)}
+      onOpen={(habit) =>
+        navigation.navigate("HabitDetail", { habitId: habit.id })
+      }
+    />
+  );
 
   return (
-    <SafeAreaView
+    <View
       style={[
         globalStyles.container,
-        { backgroundColor: theme.colors.background, paddingTop: 20 },
+        { backgroundColor: theme.colors.background },
       ]}
     >
-      {/* Encabezado */}
-      <HeaderTitle title="Hoy" subtitle={formattedDate} theme={theme} />
-
-      {/* Lista de hábitos */}
+      <ProgressBar progress={progress} color={theme.colors.secondary} />
       {loading ? (
-        <Text style={{ color: theme.colors.text, textAlign: "center" }}>
-          Cargando hábitos...
-        </Text>
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.primary}
+          style={{ marginTop: 20 }}
+        />
       ) : habits.length === 0 ? (
-        <Text style={{ color: theme.colors.text, textAlign: "center" }}>
-          Aún no has creado hábitos.
+        <Text style={{ color: theme.colors.text, marginTop: 20 }}>
+          Aún no tienes hábitos registrados.
         </Text>
       ) : (
         <FlatList
           data={habits}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <HabitCard item={item} onPress={handleCompleteHabit} theme={theme} />
-          )}
+          renderItem={renderHabit}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* Botón flotante */}
       <FloatingButton
         onPress={() => navigation.navigate("HabitForm")}
-        color={theme.colors.secondary}
+        color={theme.colors.primary}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

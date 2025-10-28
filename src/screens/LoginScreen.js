@@ -21,13 +21,13 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password.");
+      Alert.alert("Error", "Por favor, completa todos los campos.");
       return;
     }
     try {
       await login(email, password);
     } catch (error) {
-      Alert.alert("Login Failed", error.message);
+      Alert.alert("Inicio de sesión fallido", error.message);
     }
   };
 
@@ -48,36 +48,36 @@ export default function LoginScreen({ navigation }) {
       >
         <Image
           source={require("../assets/logo.png")}
-          style={{ width: 300, height: 300, marginBottom: 5 }}
+          style={{ width: 400, height: 400, marginBottom: 5 }}
           resizeMode="contain"
         />
 
         <Text style={[globalStyles.title, { color: "#542AB4", marginBottom: 15 }]}>
-          Welcome
+          Bienvenido
         </Text>
 
         <TextInput
           style={globalStyles.input}
-          placeholder="Email"
+          placeholder="Correo electrónico"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
         />
         <TextInput
           style={globalStyles.input}
-          placeholder="Password"
+          placeholder="Contraseña"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
         <TouchableOpacity style={globalStyles.button} onPress={handleLogin}>
-          <Text style={globalStyles.buttonText}>Log In</Text>
+          <Text style={globalStyles.buttonText}>Iniciar sesion</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
           <Text style={{ color: "#542AB4", marginTop: 20 }}>
-            Don’t have an account? Sign up
+            ¿No tienes una cuenta? Regístrate
           </Text>
         </TouchableOpacity>
       </ScrollView>

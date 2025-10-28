@@ -22,17 +22,17 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     if (!email || !password || !confirm) {
-      Alert.alert("Error", "All fields are required.");
+      Alert.alert("Error", "Por favor completa todos los campos.");
       return;
     }
     if (password !== confirm) {
-      Alert.alert("Error", "Passwords do not match.");
+      Alert.alert("Error", "Las contraseñas no coinciden.");
       return;
     }
     try {
       await register(email, password);
     } catch (error) {
-      Alert.alert("Registration Failed", error.message);
+      Alert.alert("Registro fallido", error.message);
     }
   };
 
@@ -53,43 +53,43 @@ export default function RegisterScreen({ navigation }) {
       >
         <Image
           source={require("../assets/logo.png")}
-          style={{ width: 300, height: 300, marginBottom: 5 }}
+          style={{ width: 400, height: 400, marginBottom: 5 }}
           resizeMode="contain"
         />
 
         <Text style={[globalStyles.title, { color: "#542AB4", marginBottom: 15 }]}>
-          Create Account
+          Crear una cuenta
         </Text>
 
         <TextInput
           style={globalStyles.input}
-          placeholder="Email"
+          placeholder="Correo Electronico"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
         />
         <TextInput
           style={globalStyles.input}
-          placeholder="Password"
+          placeholder="Contraseña"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
         <TextInput
           style={globalStyles.input}
-          placeholder="Confirm Password"
+          placeholder="Confirmar Contraseña"
           secureTextEntry
           value={confirm}
           onChangeText={setConfirm}
         />
 
         <TouchableOpacity style={globalStyles.button} onPress={handleRegister}>
-          <Text style={globalStyles.buttonText}>Sign Up</Text>
+          <Text style={globalStyles.buttonText}>Registrarse</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={{ color: "#542AB4", marginTop: 20 }}>
-            Already have an account? Log in
+            ¿Ya tienes una cuenta? Inicia sesión
           </Text>
         </TouchableOpacity>
       </ScrollView>

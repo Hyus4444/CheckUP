@@ -13,6 +13,7 @@ export default function HabitFormField({ label, children, theme }) {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 10,
+    marginHorizontal: 10,
   },
   label: {
     fontSize: 16,

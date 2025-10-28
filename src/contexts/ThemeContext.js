@@ -5,20 +5,30 @@ import { lightTheme, darkTheme } from "../styles/theme";
 export const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
+  const [isDark, setIsDark] = useState(false);
   const [theme, setTheme] = useState(lightTheme);
 
   useEffect(() => {
     const loadTheme = async () => {
-      const stored = await AsyncStorage.getItem("appTheme");
-      if (stored === "dark") setTheme(darkTheme);
+      const saved = await AsyncStorage.getItem("themeMode");
+      if (saved === "dark") {
+        setIsDark(true);
+        setTheme(darkTheme);
+      }
     };
     loadTheme();
   }, []);
 
   const toggleTheme = async () => {
-    const newTheme = theme.mode === "light" ? darkTheme : lightTheme;
-    setTheme(newTheme);
-    await AsyncStorage.setItem("appTheme", newTheme.mode);
+    if (isDark) {
+      setIsDark(false);
+      setTheme(lightTheme);
+      await AsyncStorage.setItem("themeMode", "light");
+    } else {
+      setIsDark(true);
+      setTheme(darkTheme);
+      await AsyncStorage.setItem("themeMode", "dark");
+    }
   };
 
   return (

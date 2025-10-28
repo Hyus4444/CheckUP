@@ -7,7 +7,10 @@ export default function HabitStatsCard({ name, emoji, progress, theme }) {
     <View
       style={[
         styles.card,
-        { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border,
+        },
       ]}
     >
       <View style={styles.row}>
@@ -29,8 +32,22 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
   },
-  row: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  emoji: { fontSize: 28, marginRight: 10 },
-  name: { fontSize: 18, fontWeight: "600" },
-  percent: { textAlign: "right", marginTop: 5, fontSize: 14 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  emoji: {
+    fontSize: 28,
+    marginRight: 10,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  percent: {
+    textAlign: "right",
+    marginTop: 5,
+    fontSize: 14,
+  },
 });
