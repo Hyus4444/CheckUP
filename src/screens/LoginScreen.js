@@ -1,6 +1,18 @@
+// src/screens/LoginScreen.js
 import React, { useState, useContext } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+} from "react-native";
 import { AuthContext } from "../contexts/AuthContext";
+import { globalStyles } from "../styles/globalStyles";
 
 export default function LoginScreen({ navigation }) {
   const { login } = useContext(AuthContext);
@@ -20,53 +32,55 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>CheckUP</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[globalStyles.container, { backgroundColor: "#fff", justifyContent: "flex-start" }]}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingTop: 60,
+          paddingBottom: 30,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image
+          source={require("../assets/logo.png")}
+          style={{ width: 300, height: 300, marginBottom: 5 }}
+          resizeMode="contain"
+        />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <Text style={[globalStyles.title, { color: "#542AB4", marginBottom: 15 }]}>
+          Welcome
+        </Text>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Log In</Text>
-      </TouchableOpacity>
+        <TextInput
+          style={globalStyles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={globalStyles.input}
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-        <Text style={styles.link}>Don’t have an account? Sign up</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={globalStyles.button} onPress={handleLogin}>
+          <Text style={globalStyles.buttonText}>Log In</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+          <Text style={{ color: "#542AB4", marginTop: 20 }}>
+            Don’t have an account? Sign up
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 30, color: "#542AB4" },
-  input: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 12,
-    marginBottom: 15,
-    borderRadius: 10,
-  },
-  button: {
-    width: "100%",
-    backgroundColor: "#02A394",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  buttonText: { color: "#fff", fontWeight: "bold" },
-  link: { color: "#542AB4", marginTop: 15 },
-});
