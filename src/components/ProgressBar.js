@@ -1,24 +1,25 @@
+// simple ProgressBar que espera progress 0..1
 import React from "react";
 import { View, StyleSheet } from "react-native";
 
-export default function ProgressBar({ progress = 0.5, color = "#02A394" }) {
+export default function ProgressBar({ progress = 0, color = "#02A394", height = 10 }) {
+  const clamped = Math.max(0, Math.min(1, progress));
   return (
-    <View style={styles.container}>
-      <View style={[styles.fill, { width: `${progress * 100}%`, backgroundColor: color }]} />
+    <View style={[styles.track, { height }]}>
+      <View style={[styles.fill, { width: `${clamped * 100}%`, backgroundColor: color }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    height: 10,
-    borderRadius: 10,
-    backgroundColor: "#E0E0E0",
-    overflow: "hidden",
+  track: {
     width: "100%",
+    backgroundColor: "#E6E6E6",
+    borderRadius: 999,
+    overflow: "hidden",
   },
   fill: {
     height: "100%",
-    borderRadius: 10,
+    borderRadius: 999,
   },
 });

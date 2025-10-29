@@ -1,23 +1,13 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { globalStyles } from "../styles/globalStyles";
 
 export default function HabitFormField({ label, children, theme }) {
   return (
-    <View style={styles.container}>
-      <Text style={[styles.label, { color: theme.colors.text }]}>{label}</Text>
+    <View style={globalStyles.containerFormHabit}>
+      <Text style={[globalStyles.label, { color: theme.colors.text }]}>{label}</Text>
       {children}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: 10,
-    marginHorizontal: 10,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-});

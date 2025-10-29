@@ -1,6 +1,5 @@
 // src/navigation/AppNavigator.js
 import React, { useContext } from "react";
-import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
@@ -11,6 +10,8 @@ import HabitFormScreen from "../screens/HabitFormScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import HabitEditScreen from "../screens/HabitEditScreen";
+import HabitDetailScreen from "../screens/HabitDetailScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -18,17 +19,6 @@ export default function AppNavigator() {
   const { user } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
 
-  const navigationTheme = {
-    dark: theme.mode === "dark",
-    colors: {
-      primary: theme.colors.primary,
-      background: theme.colors.background,
-      card: theme.colors.background,
-      text: theme.colors.text,
-      border: theme.colors.border,
-      notification: theme.colors.secondary,
-    },
-  };
 
   return (
     <Stack.Navigator
@@ -73,7 +63,7 @@ export default function AppNavigator() {
                   <Ionicons
                     name="settings-outline"
                     size={40}
-                    color={theme.colors.text}
+                    color={theme.colors.primary}
                   />
                 </TouchableOpacity>
               ),
@@ -92,13 +82,13 @@ export default function AppNavigator() {
                 fontSize: 35,
                 fontWeight: "600",
               },
-              headerTintColor: theme.colors.text, // color del botón de volver
+              headerTintColor: theme.colors.primary, // color del botón de volver
             }}
           />
 
           <Stack.Screen
             name="HabitDetail"
-            component={require("../screens/HabitDetailScreen").default}
+            component={HabitDetailScreen}
             options={{
               title: "Detalles del hábito",
               headerTitleAlign: "right",
@@ -108,13 +98,13 @@ export default function AppNavigator() {
                 fontSize: 35,
                 fontWeight: "600",
               },
-              headerTintColor: theme.colors.text, // ícono de retroceso
+              headerTintColor: theme.colors.primary, 
             }}
           />
 
           <Stack.Screen
             name="Settings"
-            component={require("../screens/SettingsScreen").default}
+            component={SettingsScreen}
             options={{
               title: "Configuración",
               headerTitleAlign: "right",
@@ -124,13 +114,13 @@ export default function AppNavigator() {
                 fontSize: 35,
                 fontWeight: "600",
               },
-              headerTintColor: theme.colors.text,
+              headerTintColor: theme.colors.primary,
             }}
           />
 
           <Stack.Screen
             name="HabitEdit"
-            component={require("../screens/HabitEditScreen").default}
+            component={HabitEditScreen}
             options={{
               title: "Editar hábito",
               headerTitleAlign: "right",
@@ -140,7 +130,7 @@ export default function AppNavigator() {
                 fontSize: 35,
                 fontWeight: "600",
               },
-              headerTintColor: theme.colors.text,
+              headerTintColor: theme.colors.primary,
             }}
           />
         </>

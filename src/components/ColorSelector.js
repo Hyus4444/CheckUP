@@ -1,15 +1,16 @@
 import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { globalStyles } from "../styles/globalStyles";
 
 export default function ColorSelector({ colors, selected, onSelect, theme }) {
   return (
-    <View style={styles.container}>
+    <View style={globalStyles.containerColor}>
       {colors.map((c) => (
         <TouchableOpacity
           key={c}
           onPress={() => onSelect(c)}
           style={[
-            styles.circle,
+            globalStyles.circleColor ,
             {
               backgroundColor: c,
               borderColor: c === selected ? theme.colors.text : theme.colors.border,
@@ -22,16 +23,4 @@ export default function ColorSelector({ colors, selected, onSelect, theme }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  circle: {
-    width: 44,
-    height: 44,
-    borderRadius: 30,
-    margin: 4,
-  },
-});
+

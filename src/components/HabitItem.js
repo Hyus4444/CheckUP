@@ -23,7 +23,7 @@ export default function HabitItem({
     transform: [{ scale: scale.value }],
   }));
 
-  // Animación de progreso (ancho dinámico)
+  // Animación de progreso
   const progressWidth = useSharedValue(progress);
 
   React.useEffect(() => {
@@ -73,8 +73,7 @@ export default function HabitItem({
             style={[
               styles.checkButton,
               {
-                borderColor:
-                  progress >= 1 ? item.color : theme.colors.text,
+                borderColor: progress >= 1 ? item.color : theme.colors.text,
                 backgroundColor: progress >= 1 ? item.color : "transparent",
               },
             ]}
@@ -93,7 +92,12 @@ export default function HabitItem({
       </View>
 
       {/* Barra de progreso */}
-      <View style={[styles.progressContainer, { backgroundColor: theme.colors.border }]}>
+      <View
+        style={[
+          styles.progressContainer,
+          { backgroundColor: theme.colors.border },
+        ]}
+      >
         <Animated.View
           style={[
             styles.progressBar,
@@ -157,4 +161,3 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 });
-

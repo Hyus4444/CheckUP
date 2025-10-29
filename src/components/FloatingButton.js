@@ -6,7 +6,7 @@ import { globalStyles } from "../styles/globalStyles";
 export default function FloatingButton({ onPress, color }) {
   return (
     <TouchableOpacity
-      style={[styles.fab]}
+      style={[globalStyles.fab]}
       onPress={onPress}
     >
       <Ionicons name="add" size={36} color="#fff" />
@@ -14,17 +14,4 @@ export default function FloatingButton({ onPress, color }) {
   );
 }
 
-const styles = StyleSheet.create({
-  fab: {
-    position: "absolute",
-    bottom: 30,
-    right: 30,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 6,
-    backgroundColor: "#02A394"
-  },
-});
+

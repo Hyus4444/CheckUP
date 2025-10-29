@@ -1,4 +1,3 @@
-// src/screens/HomeScreen.js
 import React, { useContext, useState, useCallback } from "react";
 import {
   View,
@@ -23,10 +22,10 @@ import {
   where,
   Timestamp,
 } from "firebase/firestore";
-import { globalStyles } from "../styles/globalStyles";
 import FloatingButton from "../components/FloatingButton";
 import ProgressBar from "../components/ProgressBar";
 import HabitItem from "../components/HabitItem";
+import { globalStyles } from "../styles/globalStyles";
 
 export default function HomeScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
@@ -36,16 +35,16 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [habitLogs, setHabitLogs] = useState({});
 
-  // 🔹 Obtener clave única del día
+  //Obtener clave única del día
   const getTodayKey = () => {
     const now = new Date();
     return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
   };
 
-const styles = StyleSheet.create({});
+  const styles = StyleSheet.create({});
   const getCurrentDayIndex = () => {
-    const jsDay = new Date().getDay(); 
-    const dayMap = ["D","L", "M", "Mi", "J", "V", "S"];
+    const jsDay = new Date().getDay();
+    const dayMap = ["D", "L", "M", "Mi", "J", "V", "S"];
     return dayMap[jsDay];
   };
   // Cargar hábitos del día actual
@@ -93,7 +92,14 @@ const styles = StyleSheet.create({});
     const logsByHabit = {};
 
     for (const habit of todayHabits) {
-      const logsRef = collection(db, "users", user.uid, "habits", habit.id, "logs");
+      const logsRef = collection(
+        db,
+        "users",
+        user.uid,
+        "habits",
+        habit.id,
+        "logs"
+      );
       const q = query(logsRef, where("dateKey", "==", todayKey));
       const snap = await getDocs(q);
 
@@ -134,8 +140,7 @@ const styles = StyleSheet.create({});
       const logsRef = collection(habitRef, "logs");
 
       const currentCount = habitLogs[habit.id] || 0;
-      const newCount =
-        currentCount < habit.timesPerDay ? currentCount + 1 : 0; // reset si supera el límite
+      const newCount = currentCount < habit.timesPerDay ? currentCount + 1 : 0; // reset si supera el límite
 
       const logData = {
         date: Timestamp.fromDate(new Date()),
@@ -183,7 +188,9 @@ const styles = StyleSheet.create({});
         { backgroundColor: theme.colors.background },
       ]}
     >
-      
+      <Text style={[globalStyles.title, { color: theme.colors.primary }]}>
+        Tu progreso diario
+      </Text>
       <ProgressBar progress={progress} color={theme.colors.secondary} />
 
       {loading ? (
@@ -193,7 +200,7 @@ const styles = StyleSheet.create({});
           style={{ marginTop: 20 }}
         />
       ) : habits.length === 0 ? (
-        <Text style={{ color: theme.colors.text, marginTop: 20 }}>
+        <Text style={[globalStyles.label, {color:theme.colors.text}]}>
           No tienes hábitos programados para hoy.
         </Text>
       ) : (
@@ -214,5 +221,4 @@ const styles = StyleSheet.create({});
   );
 }
 
-const styles = StyleSheet.create({});
 

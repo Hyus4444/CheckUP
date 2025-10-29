@@ -1,16 +1,16 @@
-// src/screens/HabitFormScreen.js
 import React, { useContext, useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Switch,
   Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  FlatList,
 } from "react-native";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
@@ -18,7 +18,6 @@ import { db } from "../services/firebase";
 import { doc, collection, addDoc } from "firebase/firestore";
 import { globalStyles } from "../styles/globalStyles";
 
-// Componentes modulares
 import HabitFormField from "../components/HabitFormField";
 import ColorSelector from "../components/ColorSelector";
 import DaySelector from "../components/DaySelector";
@@ -44,6 +43,7 @@ const presetColors = [
   "#A21E06",
   "#FD1900",
 ];
+
 const emojiOptions = [
   "💧",
   "📖",
@@ -76,6 +76,7 @@ const emojiOptions = [
   "🎁",
   "🪴",
 ];
+
 const days = ["L", "M", "Mi", "J", "V", "S", "D"];
 
 export default function HabitFormScreen({ navigation }) {
@@ -84,7 +85,8 @@ export default function HabitFormScreen({ navigation }) {
 
   const [name, setName] = useState("");
   const [color, setColor] = useState(presetColors[0]);
-  const [emoji, setEmoji] = useState(emojiOptions[0]);
+  const [emoji, setEmoji] = useState("💧");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [frequency, setFrequency] = useState([]);
   const [timesPerDay, setTimesPerDay] = useState(1);
   const [notifications, setNotifications] = useState(false);
@@ -110,13 +112,12 @@ export default function HabitFormScreen({ navigation }) {
     }
 
     setSaving(true);
-
     try {
       const habitData = {
         name,
         emoji,
         color,
-        frequency: frequency.map((i) => days[i]), // 👈 convierte índices a texto
+        frequency: frequency.map((i) => days[i]),
         timesPerDay,
         notifications,
         completedCount: 0,
@@ -150,30 +151,68 @@ export default function HabitFormScreen({ navigation }) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 50 }}
       >
-        {/* Selección de ícono */}
-        <HabitFormField label="Selecciona un ícono" theme={theme}>
-          <View style={styles.emojiRow}>
-            {emojiOptions.map((e) => (
-              <TouchableOpacity
-                key={e}
-                onPress={() => setEmoji(e)}
-                style={[
-                  styles.emojiCircle,
-                  {
-                    borderColor:
-                      e === emoji ? theme.colors.text : theme.colors.border,
-                    backgroundColor:
-                      e === emoji ? theme.colors.surface : "transparent",
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 28 }}>{e}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        {/* Selector de emoji limpio */}
+        <HabitFormField theme={theme}>
+          <TouchableOpacity
+            style={[
+              globalStyles.emojiCircle,
+              { backgroundColor: color, borderColor: theme.colors.border },
+            ]}
+            onPress={() => setShowEmojiPicker(true)}
+          >
+            <Text style={{ fontSize: 70 }}>{emoji}</Text>
+          </TouchableOpacity>
+          <Text
+            style={[
+              globalStyles.label,
+              { color: theme.colors.text },
+              { marginTop: 15 },
+              { marginBottom: 15 },
+              { alignSelf: "center" },
+            ]}
+          >
+            Selecciona un ícono
+          </Text>
         </HabitFormField>
 
-        {/* Campo: Nombre */}
+        {/* Modal de selección de emoji */}
+        <Modal
+          visible={showEmojiPicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowEmojiPicker(false)}
+        >
+          <View style={globalStyles.modalContainer}>
+            <View
+              style={[
+                globalStyles.modalContent,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <Text style={[globalStyles.modalTitle, { color: theme.colors.text }]}>
+                Selecciona un ícono
+              </Text>
+              <FlatList
+                data={emojiOptions}
+                numColumns={5}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={globalStyles.emojiOption}
+                    onPress={() => {
+                      setEmoji(item);
+                      setShowEmojiPicker(false);
+                    }}
+                  >
+                    <Text style={{ fontSize: 30 }}>{item}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {/* Nombre */}
         <HabitFormField label="Nombre del hábito" theme={theme}>
           <TextInput
             style={[
@@ -192,8 +231,8 @@ export default function HabitFormScreen({ navigation }) {
           />
         </HabitFormField>
 
-        {/* Selección de color */}
-        <HabitFormField label="Selecciona un color" theme={theme}>
+        {/* Color */}
+        <HabitFormField label="Color del hábito" theme={theme}>
           <ColorSelector
             colors={presetColors}
             selected={color}
@@ -202,7 +241,7 @@ export default function HabitFormScreen({ navigation }) {
           />
         </HabitFormField>
 
-        {/* Días de la semana */}
+        {/* Días */}
         <HabitFormField label="Días de la semana" theme={theme}>
           <DaySelector
             days={days}
@@ -222,9 +261,9 @@ export default function HabitFormScreen({ navigation }) {
           />
         </HabitFormField>
 
-        {/* Notificaciones */}
-        <View style={[styles.row, { marginTop: 15 }]}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>
+        {/* Recordatorios */}
+        <View style={[globalStyles.row, { marginTop: 15 }]}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
             Activar recordatorios
           </Text>
           <Switch
@@ -235,7 +274,7 @@ export default function HabitFormScreen({ navigation }) {
           />
         </View>
 
-        {/* Botón guardar */}
+        {/* Guardar */}
         <TouchableOpacity
           style={[
             globalStyles.button,
@@ -253,29 +292,3 @@ export default function HabitFormScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  emojiRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 10,
-  },
-  emojiCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});

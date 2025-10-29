@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
@@ -17,9 +18,18 @@ import {
   deleteDoc,
   collection,
   getDocs,
+  query,
+  where,
+  Timestamp,
+  doc as docRef,
+  getDocFromCache,
 } from "firebase/firestore";
 import ProgressBar from "../components/ProgressBar";
+import { Calendar } from "react-native-calendars";
 import { globalStyles } from "../styles/globalStyles";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const BOTTOM_BUTTONS_HEIGHT = 84; // ajuste: espacio reservado para botones fijos
 
 export default function HabitDetailScreen({ route, navigation }) {
   const { theme } = useContext(ThemeContext);
@@ -27,59 +37,191 @@ export default function HabitDetailScreen({ route, navigation }) {
   const { habitId } = route.params;
 
   const [habit, setHabit] = useState(null);
-  const [progress, setProgress] = useState(0);
+  const [todayProgress, setTodayProgress] = useState(0); // 0..1
+  const [weeklyProgress, setWeeklyProgress] = useState(0); // 0..1
+  const [todayCount, setTodayCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [markedDates, setMarkedDates] = useState({});
+  // Construir objeto para Calendar
 
   const days = ["L", "M", "Mi", "J", "V", "S", "D"];
 
-  // 🔹 Cargar datos del hábito
+  // formato de clave para doc por día (consistente con HomeScreen)
+  const getTodayKey = () => {
+    const now = new Date();
+    const M = now.getMonth() + 1;
+    return `${now.getFullYear()}-${M}-${now.getDate()}`;
+  };
+
   useEffect(() => {
-    const fetchHabit = async () => {
+    let mounted = true;
+
+    const fetchHabitData = async () => {
       try {
         const habitRef = doc(db, "users", user.uid, "habits", habitId);
         const habitSnap = await getDoc(habitRef);
-        if (habitSnap.exists()) {
-          const data = habitSnap.data();
 
-          // Si la frecuencia son índices numéricos, los convertimos a texto
-          const formattedFrequency = Array.isArray(data.frequency)
-            ? data.frequency.map((d) =>
-                typeof d === "number" ? days[d] : d
-              )
-            : [];
-
-          setHabit({ id: habitSnap.id, ...data, frequency: formattedFrequency });
-          await fetchProgress(habitId);
-        } else {
+        if (!habitSnap.exists()) {
           Alert.alert("Error", "El hábito no existe.");
           navigation.goBack();
+          return;
         }
+
+        const data = habitSnap.data();
+        const formattedFrequency = Array.isArray(data.frequency)
+          ? data.frequency.map((d) => (typeof d === "number" ? days[d] : d))
+          : [];
+
+        if (!mounted) return;
+        setHabit({ id: habitSnap.id, ...data, frequency: formattedFrequency });
+
+        // calcular progreso del día y de la semana
+        await computeProgress(habitId, data.timesPerDay || 1);
       } catch (error) {
         console.error("Error al cargar hábito:", error);
-        Alert.alert("Error", "No se pudo cargar el hábito.");
+        Alert.alert("Error", "No se pudo cargar la información del hábito.");
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
-    fetchHabit();
+    fetchHabitData();
+
+    return () => {
+      mounted = false;
+    };
   }, [habitId]);
 
-  // 🔹 Cargar progreso semanal desde subcolección "logs"
-  const fetchProgress = async (id) => {
+  // computeProgress lee logs y calcula todayProgress y weeklyProgress
+  const computeProgress = async (id, targetTimesPerDay = 1) => {
     try {
       const logsRef = collection(db, "users", user.uid, "habits", id, "logs");
-      const logsSnap = await getDocs(logsRef);
 
-      const total = logsSnap.size;
-      const completed = logsSnap.docs.filter(
-        (doc) => doc.data().completed
-      ).length;
-      const percentage = total > 0 ? completed / total : 0;
+      // 1) obtener log de hoy. Soportamos dos esquemas:
+      // - documento con id = todayKey (setDoc(doc(logsRef, todayKey), {...}))
+      // - documento con campo dateKey == todayKey
+      const todayKey = getTodayKey();
+      let todayCountVal = 0;
 
-      setProgress(percentage);
+      // intentar obtener doc con id = todayKey
+      try {
+        const todayDocRef = docRef(
+          db,
+          "users",
+          user.uid,
+          "habits",
+          id,
+          "logs",
+          todayKey
+        );
+        const todaySnap = await getDoc(todayDocRef);
+        if (todaySnap.exists()) {
+          const d = todaySnap.data();
+          todayCountVal =
+            typeof d.count === "number"
+              ? d.count
+              : d.completed
+              ? d.count || 1
+              : 0;
+        } else {
+          // fallback: búsqueda por campo dateKey
+          const q1 = query(logsRef, where("dateKey", "==", todayKey));
+          const snap1 = await getDocs(q1);
+          if (!snap1.empty) {
+            const d = snap1.docs[0].data();
+            todayCountVal =
+              typeof d.count === "number"
+                ? d.count
+                : d.completed
+                ? d.count || 1
+                : 0;
+          }
+        }
+      } catch (err) {
+        console.warn(
+          "No se obtuvo doc by id for todayKey, buscando por campo...",
+          err
+        );
+        const q1 = query(logsRef, where("dateKey", "==", todayKey));
+        const snap1 = await getDocs(q1);
+        if (!snap1.empty) {
+          const d = snap1.docs[0].data();
+          todayCountVal =
+            typeof d.count === "number"
+              ? d.count
+              : d.completed
+              ? d.count || 1
+              : 0;
+        }
+      }
+
+      // 2) calcular progreso semanal: obtener logs >= sevenDaysAgo
+      const today = new Date();
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(today.getDate() - 6); // últimos 7 días (incluye hoy)
+      const q = query(
+        logsRef,
+        where("date", ">=", Timestamp.fromDate(sevenDaysAgo))
+      );
+      const snap = await getDocs(q);
+
+      // construimos un map dateKey -> {count, target}
+      const dayMap = new Map();
+      const marked = {};
+      dayMap.forEach((value, key) => {
+        marked[key] = {
+          marked: true,
+          dotColor: habit.color,
+          selected: value.count >= value.target,
+          selectedColor: habit.color,
+        };
+      });
+      setMarkedDates(marked);
+      snap.docs.forEach((docu) => {
+        const d = docu.data();
+        // dateKey preferido, si no, extraer ISO date de timestamp
+        const key =
+          d.dateKey ||
+          (d.date &&
+            d.date.toDate &&
+            d.date.toDate().toISOString().split("T")[0]) ||
+          null;
+        if (!key) return;
+        const count = typeof d.count === "number" ? d.count : d.count ? 1 : 0;
+        const target = d.target || targetTimesPerDay;
+        // si hay varios logs para el mismo día, acumulamos (por si acaso)
+        const prev = dayMap.get(key);
+        if (prev) {
+          dayMap.set(key, { count: prev.count + count, target });
+        } else {
+          dayMap.set(key, { count, target });
+        }
+      });
+
+      // asegurar que consideramos 7 días (incluir días sin registro con count=0)
+      const rates = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const key = d.toISOString().split("T")[0];
+        const rec = dayMap.get(key);
+        const count = rec ? rec.count : 0;
+        const target = rec ? rec.target : targetTimesPerDay;
+        const rate = target > 0 ? Math.min(count / target, 1) : 0;
+        rates.push(rate);
+      }
+
+      const weekly = rates.reduce((s, r) => s + r, 0) / 7;
+      const todayProgressVal =
+        targetTimesPerDay > 0
+          ? Math.min(todayCountVal / targetTimesPerDay, 1)
+          : 0;
+
+      setTodayCount(todayCountVal);
+      setTodayProgress(todayProgressVal);
+      setWeeklyProgress(weekly);
     } catch (error) {
-      console.error("Error al obtener progreso:", error);
+      console.error("Error calculando progreso:", error);
     }
   };
 
@@ -124,73 +266,114 @@ export default function HabitDetailScreen({ route, navigation }) {
   if (!habit) return null;
 
   return (
-    <ScrollView
+    <View
       style={[
         globalStyles.container,
         { backgroundColor: theme.colors.background },
       ]}
-      contentContainerStyle={{ paddingBottom: 40 }}
     >
-      {/* Encabezado */}
-      <View style={styles.header}>
-        <Text style={[styles.emoji, { color: habit.color }]}>{habit.emoji}</Text>
-        <Text style={[styles.title, { color: theme.colors.text }]}>
-          {habit.name}
-        </Text>
-      </View>
-
-      {/* Progreso */}
-      <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.colors.text }]}>
-          Progreso semanal
-        </Text>
-        <ProgressBar progress={progress} color={habit.color} />
-        <Text style={[styles.percent, { color: theme.colors.text }]}>
-          {(progress * 100).toFixed(0)}%
-        </Text>
-      </View>
-
-      {/* Frecuencia */}
-      <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.colors.text }]}>
-          Días de la semana
-        </Text>
-        <View style={styles.daysRow}>
-          {habit.frequency.map((day, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dayCircle,
-                { backgroundColor: habit.color, borderColor: habit.color },
-              ]}
-            >
-              <Text style={styles.dayText}>{day}</Text>
-            </View>
-          ))}
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: BOTTOM_BUTTONS_HEIGHT + 20 }}
+      >
+        {/* Encabezado */}
+        <View style={globalStyles.header}>
+          <Text style={[globalStyles.emojiDetails, { color: habit.color }]}>
+            {habit.emoji}
+          </Text>
+          <Text style={[globalStyles.titleWhite, { color: theme.colors.text }]}>
+            {habit.name}
+          </Text>
         </View>
-      </View>
 
-      {/* Veces por día */}
-      <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.colors.text }]}>
-          Veces por día:{" "}
-          <Text style={{ fontWeight: "bold" }}>{habit.timesPerDay}</Text>
-        </Text>
-      </View>
+        {/* --- Hoy: barra principal (progreso del día) --- */}
+        <View style={globalStyles.sectionDetails}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Progreso hoy
+          </Text>
+          <ProgressBar progress={todayProgress} color={habit.color} />
+          <Text style={[globalStyles.percent, { color: theme.colors.text }]}>
+            {Math.round(todayProgress * 100)}% • {todayCount}/
+            {habit.timesPerDay}
+          </Text>
+        </View>
 
-      {/* Notificaciones */}
-      <View style={styles.section}>
-        <Text style={[styles.label, { color: theme.colors.text }]}>
-          Recordatorios: {habit.notifications ? "Activados" : "Desactivados"}
-        </Text>
-      </View>
+        {/* --- Progreso semanal (resumen) --- */}
+        <View style={globalStyles.sectionDetails}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Progreso semanal
+          </Text>
+          <ProgressBar progress={weeklyProgress} color={habit.color} />
+          <Text style={[globalStyles.percent, { color: theme.colors.text }]}>
+            {Math.round(weeklyProgress * 100)}%
+          </Text>
+        </View>
+        {/* Frecuencia */}
+        <View style={globalStyles.sectionDetails}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Días de la semana
+          </Text>
+          <View style={globalStyles.daysRow}>
+            {habit.frequency.map((day, index) => (
+              <View
+                key={index}
+                style={[
+                  globalStyles.dayCircle,
+                  { backgroundColor: habit.color, borderColor: habit.color },
+                ]}
+              >
+                <Text style={globalStyles.dayText}>{day}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
-      {/* Botones */}
-      <View style={styles.buttonRow}>
+        {/* Veces por día */}
+        <View style={globalStyles.sectionDetails}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Veces por día:{" "}
+            <Text style={globalStyles.label}>{habit.timesPerDay}</Text>
+          </Text>
+        </View>
+
+        {/* Notificaciones */}
+        <View style={globalStyles.sectionDetails}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Recordatorios: {habit.notifications ? "Activados" : "Desactivados"}
+          </Text>
+        </View>
+        {/* --- Calendario de progreso --- */}
+        <View style={globalStyles.sectionDetails}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Historial de progreso
+          </Text>
+
+          <Calendar
+            style={globalStyles.calendar}
+            theme={{
+              backgroundColor: theme.colors.background,
+              calendarBackground: theme.colors.background,
+              dayTextColor: theme.colors.text,
+              monthTextColor: theme.colors.text,
+              arrowColor: habit.color,
+              selectedDayBackgroundColor: habit.color,
+              todayTextColor: habit.color,
+            }}
+            markedDates={markedDates}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Botones fijos en la parte inferior */}
+      <View
+        style={[
+          globalStyles.bottomButtonsContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <TouchableOpacity
           style={[
             globalStyles.button,
-            { backgroundColor: habit.color, flex: 1, marginRight: 5 },
+            { backgroundColor: habit.color, flex: 1, marginRight: 8 },
           ]}
           onPress={() => navigation.navigate("HabitEdit", { habitId })}
         >
@@ -200,63 +383,13 @@ export default function HabitDetailScreen({ route, navigation }) {
         <TouchableOpacity
           style={[
             globalStyles.button,
-            { backgroundColor: "#E74C3C", flex: 1 },
+            { backgroundColor: "#E74C3C", flex: 1, marginLeft: 8 },
           ]}
           onPress={handleDelete}
         >
           <Text style={globalStyles.buttonText}>Eliminar</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  emoji: {
-    fontSize: 64,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginTop: 10,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  percent: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 5,
-  },
-  daysRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  dayCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 5,
-  },
-  dayText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 15,
-  },
-});
