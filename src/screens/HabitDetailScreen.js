@@ -30,15 +30,25 @@ export default function HabitDetailScreen({ route, navigation }) {
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Cargar datos del hábito
+  const days = ["L", "M", "Mi", "J", "V", "S", "D"];
+
+  // 🔹 Cargar datos del hábito
   useEffect(() => {
     const fetchHabit = async () => {
       try {
         const habitRef = doc(db, "users", user.uid, "habits", habitId);
         const habitSnap = await getDoc(habitRef);
         if (habitSnap.exists()) {
-          setHabit({ id: habitSnap.id, ...habitSnap.data() });
-          // cargar progreso
+          const data = habitSnap.data();
+
+          // Si la frecuencia son índices numéricos, los convertimos a texto
+          const formattedFrequency = Array.isArray(data.frequency)
+            ? data.frequency.map((d) =>
+                typeof d === "number" ? days[d] : d
+              )
+            : [];
+
+          setHabit({ id: habitSnap.id, ...data, frequency: formattedFrequency });
           await fetchProgress(habitId);
         } else {
           Alert.alert("Error", "El hábito no existe.");
@@ -55,7 +65,7 @@ export default function HabitDetailScreen({ route, navigation }) {
     fetchHabit();
   }, [habitId]);
 
-  // Cargar progreso semanal desde subcolección "logs"
+  // 🔹 Cargar progreso semanal desde subcolección "logs"
   const fetchProgress = async (id) => {
     try {
       const logsRef = collection(db, "users", user.uid, "habits", id, "logs");
@@ -123,9 +133,7 @@ export default function HabitDetailScreen({ route, navigation }) {
     >
       {/* Encabezado */}
       <View style={styles.header}>
-        <Text style={[styles.emoji, { color: habit.color }]}>
-          {habit.emoji}
-        </Text>
+        <Text style={[styles.emoji, { color: habit.color }]}>{habit.emoji}</Text>
         <Text style={[styles.title, { color: theme.colors.text }]}>
           {habit.name}
         </Text>
@@ -148,15 +156,15 @@ export default function HabitDetailScreen({ route, navigation }) {
           Días de la semana
         </Text>
         <View style={styles.daysRow}>
-          {habit.frequency.map((d) => (
+          {habit.frequency.map((day, index) => (
             <View
-              key={d}
+              key={index}
               style={[
                 styles.dayCircle,
                 { backgroundColor: habit.color, borderColor: habit.color },
               ]}
             >
-              <Text style={styles.dayText}>{"LMXJVSD"[d]}</Text>
+              <Text style={styles.dayText}>{day}</Text>
             </View>
           ))}
         </View>
@@ -177,21 +185,22 @@ export default function HabitDetailScreen({ route, navigation }) {
         </Text>
       </View>
 
-      {/* Botones de acción */}
+      {/* Botones */}
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={[
             globalStyles.button,
-            { backgroundColor: habit.color, flex: 1 },
+            { backgroundColor: habit.color, flex: 1, marginRight: 5 },
           ]}
           onPress={() => navigation.navigate("HabitEdit", { habitId })}
         >
           <Text style={globalStyles.buttonText}>Editar</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             globalStyles.button,
-            { backgroundColor: "#E74C3C", flex: 1, marginLeft: 5 },
+            { backgroundColor: "#E74C3C", flex: 1 },
           ]}
           onPress={handleDelete}
         >
@@ -234,9 +243,9 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   dayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     margin: 5,

@@ -26,23 +26,23 @@ import CounterInput from "../components/CounterInput";
 
 const presetColors = [
   "#542AB4",
-"#4A3FB2",
-"#4054B0",
-"#3679AE",
-"#2C8EAC",
-"#22A3AA",
-"#1AA59E",
-"#12A692",
-"#0AA686",
-"#08A177",
-"#1F8E66",
-"#357B56",
-"#4A6846",
-"#605636",
-"#764326",
-"#8C3116",
-"#A21E06",
-"#FD1900"
+  "#4A3FB2",
+  "#4054B0",
+  "#3679AE",
+  "#2C8EAC",
+  "#22A3AA",
+  "#1AA59E",
+  "#12A692",
+  "#0AA686",
+  "#08A177",
+  "#1F8E66",
+  "#357B56",
+  "#4A6846",
+  "#605636",
+  "#764326",
+  "#8C3116",
+  "#A21E06",
+  "#FD1900",
 ];
 const emojiOptions = [
   "💧",
@@ -76,7 +76,7 @@ const emojiOptions = [
   "🎁",
   "🪴",
 ];
-const days = ["L", "M", "X", "J", "V", "S", "D"];
+const days = ["L", "M", "Mi", "J", "V", "S", "D"];
 
 export default function HabitFormScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
@@ -116,7 +116,7 @@ export default function HabitFormScreen({ navigation }) {
         name,
         emoji,
         color,
-        frequency,
+        frequency: frequency.map((i) => days[i]), // 👈 convierte índices a texto
         timesPerDay,
         notifications,
         completedCount: 0,

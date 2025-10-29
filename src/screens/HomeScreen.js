@@ -1,3 +1,4 @@
+// src/screens/HomeScreen.js
 import React, { useContext, useState, useCallback } from "react";
 import {
   View,
@@ -7,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native"; // 👈 importante
+import { useFocusEffect } from "@react-navigation/native";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { db } from "../services/firebase";
@@ -16,7 +17,7 @@ import {
   getDocs,
   doc,
   updateDoc,
-  addDoc,
+  setDoc,
   deleteDoc,
   query,
   where,
@@ -33,18 +34,24 @@ export default function HomeScreen({ navigation }) {
   const [habits, setHabits] = useState([]);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [completedHabits, setCompletedHabits] = useState({});
+  const [habitLogs, setHabitLogs] = useState({});
 
+  // 🔹 Obtener clave única del día
   const getTodayKey = () => {
     const now = new Date();
-    return new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    ).toISOString();
+    return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
   };
 
-  // 🔹 Cargar hábitos cada vez que la pantalla gana foco
+const styles = StyleSheet.create({});
+  const getCurrentDayIndex = () => {
+    // JS: getDay() => 0 (domingo) ... 6 (sábado)
+    // Tus días definidos: ["L", "M", "Mi", "J", "V", "S", "D"]
+    // Reorganizamos para que Lunes sea 0:
+    const jsDay = new Date().getDay(); // Domingo=0
+    const dayMap = ["D","L", "M", "Mi", "J", "V", "S"]; //D=0, L=1, M=2, Mi=3, J=,4 V=5, S=6
+    return dayMap[jsDay];
+  };
+  // 🔹 Cargar hábitos del día actual
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -54,37 +61,19 @@ export default function HomeScreen({ navigation }) {
         try {
           const habitsRef = collection(db, "users", user.uid, "habits");
           const snapshot = await getDocs(habitsRef);
-          const data = snapshot.docs.map((doc) => ({
+          const allHabits = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
 
+          const todayIndex = getCurrentDayIndex();
+          const todayHabits = allHabits.filter((habit) =>
+            habit.frequency?.includes(todayIndex)
+          );
+
           if (isActive) {
-            setHabits(data);
-
-            // Cargar logs de hoy
-            const todayKey = getTodayKey();
-            const logsByHabit = {};
-            for (const habit of data) {
-              const logsRef = collection(
-                db,
-                "users",
-                user.uid,
-                "habits",
-                habit.id,
-                "logs"
-              );
-              const q = query(
-                logsRef,
-                where("dateKey", "==", todayKey),
-                where("completed", "==", true)
-              );
-              const logsSnap = await getDocs(q);
-              logsByHabit[habit.id] = !logsSnap.empty;
-            }
-
-            setCompletedHabits(logsByHabit);
-            calculateProgress(logsByHabit);
+            setHabits(todayHabits);
+            await fetchTodayLogs(todayHabits);
           }
         } catch (error) {
           console.error("Error al cargar hábitos:", error);
@@ -95,74 +84,100 @@ export default function HomeScreen({ navigation }) {
       };
 
       fetchHabits();
-
-      // Limpieza cuando se desmonta
       return () => {
         isActive = false;
       };
     }, [user])
   );
 
-  const calculateProgress = (logsByHabit) => {
-    const total = Object.keys(logsByHabit).length;
-    const completed = Object.values(logsByHabit).filter(Boolean).length;
+  // 🔹 Obtener logs de hoy
+  const fetchTodayLogs = async (todayHabits) => {
+    const todayKey = getTodayKey();
+    const logsByHabit = {};
+
+    for (const habit of todayHabits) {
+      const logsRef = collection(db, "users", user.uid, "habits", habit.id, "logs");
+      const q = query(logsRef, where("dateKey", "==", todayKey));
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        logsByHabit[habit.id] = data.count || 0;
+      } else {
+        logsByHabit[habit.id] = 0;
+      }
+    }
+
+    setHabitLogs(logsByHabit);
+    calculateProgress(todayHabits, logsByHabit);
+  };
+
+  // 🔹 Calcular progreso global del día
+  const calculateProgress = (todayHabits, logsByHabit) => {
+    if (todayHabits.length === 0) return setProgress(0);
+
+    let total = 0;
+    let completed = 0;
+
+    todayHabits.forEach((habit) => {
+      const count = logsByHabit[habit.id] || 0;
+      const ratio = Math.min(count / habit.timesPerDay, 1);
+      completed += ratio;
+      total += 1;
+    });
+
     setProgress(total ? completed / total : 0);
   };
 
+  // 🔹 Incrementar conteo de veces completadas
   const handleToggleHabit = async (habit) => {
     try {
       const todayKey = getTodayKey();
       const habitRef = doc(db, "users", user.uid, "habits", habit.id);
       const logsRef = collection(habitRef, "logs");
 
-      if (completedHabits[habit.id]) {
-        // Desmarcar: eliminar log del día
-        const q = query(logsRef, where("dateKey", "==", todayKey));
-        const snapshot = await getDocs(q);
-        snapshot.forEach(async (d) => await deleteDoc(doc(logsRef, d.id)));
+      const currentCount = habitLogs[habit.id] || 0;
+      const newCount =
+        currentCount < habit.timesPerDay ? currentCount + 1 : 0; // reset si supera el límite
 
-        await updateDoc(habitRef, {
-          completedCount: Math.max((habit.completedCount || 1) - 1, 0),
-        });
+      const logData = {
+        date: Timestamp.fromDate(new Date()),
+        dateKey: todayKey,
+        count: newCount,
+      };
 
-        setCompletedHabits((prev) => ({ ...prev, [habit.id]: false }));
-      } else {
-        // Marcar: agregar log
-        const logData = {
-          date: Timestamp.fromDate(new Date()),
-          dateKey: todayKey,
-          completed: true,
-        };
-        await addDoc(logsRef, logData);
+      await setDoc(doc(logsRef, todayKey), logData); // clave fija por día
+      await updateDoc(habitRef, { completedCount: newCount });
 
-        await updateDoc(habitRef, {
-          completedCount: (habit.completedCount || 0) + 1,
-        });
-
-        setCompletedHabits((prev) => ({ ...prev, [habit.id]: true }));
-      }
-
-      calculateProgress({
-        ...completedHabits,
-        [habit.id]: !completedHabits[habit.id],
-      });
+      const updatedLogs = { ...habitLogs, [habit.id]: newCount };
+      setHabitLogs(updatedLogs);
+      calculateProgress(habits, updatedLogs);
     } catch (error) {
       console.error("Error al actualizar hábito:", error);
       Alert.alert("Error", "No se pudo actualizar el hábito.");
     }
   };
 
-  const renderHabit = ({ item }) => (
-    <HabitItem
-      item={item}
-      theme={theme}
-      isCompleted={!!completedHabits[item.id]}
-      onToggle={() => handleToggleHabit(item)}
-      onOpen={(habit) =>
-        navigation.navigate("HabitDetail", { habitId: habit.id })
-      }
-    />
-  );
+  // 🔹 Renderizar cada hábito
+  const renderHabit = ({ item }) => {
+    const count = habitLogs[item.id] || 0;
+    const ratio = count / item.timesPerDay;
+
+    return (
+      <HabitItem
+        item={item}
+        theme={theme}
+        isCompleted={ratio >= 1}
+        progress={ratio}
+        count={count}
+        target={item.timesPerDay}
+        onToggle={() => handleToggleHabit(item)}
+        onOpen={(habit) =>
+          navigation.navigate("HabitDetail", { habitId: habit.id })
+        }
+      />
+    );
+  };
 
   return (
     <View
@@ -172,6 +187,7 @@ export default function HomeScreen({ navigation }) {
       ]}
     >
       <ProgressBar progress={progress} color={theme.colors.secondary} />
+
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -180,7 +196,7 @@ export default function HomeScreen({ navigation }) {
         />
       ) : habits.length === 0 ? (
         <Text style={{ color: theme.colors.text, marginTop: 20 }}>
-          Aún no tienes hábitos registrados.
+          No tienes hábitos programados para hoy.
         </Text>
       ) : (
         <FlatList
@@ -201,3 +217,4 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({});
+

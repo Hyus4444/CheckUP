@@ -15,7 +15,7 @@ export default function SettingsScreen() {
   const { theme, toggleTheme, isDark } = useContext(ThemeContext);
   const { logout } = useContext(AuthContext);
 
-  // 🔹 Manejar cierre de sesión
+  // Manejar cierre de sesión
   const handleLogout = () => {
     Alert.alert(
       "Cerrar sesión",
@@ -39,7 +39,7 @@ export default function SettingsScreen() {
         { backgroundColor: theme.colors.background },
       ]}
     >
-      {/* 🔸 Opción de cambio de tema */}
+      {/*Opción de cambio de tema */}
       <View style={styles.optionRow}>
         <Text style={[styles.optionText, { color: theme.colors.text }]}>
           Tema oscuro
@@ -52,7 +52,7 @@ export default function SettingsScreen() {
         />
       </View>
 
-      {/* 🔸 Botón de cerrar sesión */}
+      {/*Botón de cerrar sesión */}
       <TouchableOpacity
         style={[
           globalStyles.button,
