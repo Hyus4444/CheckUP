@@ -44,14 +44,11 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({});
   const getCurrentDayIndex = () => {
-    // JS: getDay() => 0 (domingo) ... 6 (sábado)
-    // Tus días definidos: ["L", "M", "Mi", "J", "V", "S", "D"]
-    // Reorganizamos para que Lunes sea 0:
-    const jsDay = new Date().getDay(); // Domingo=0
-    const dayMap = ["D","L", "M", "Mi", "J", "V", "S"]; //D=0, L=1, M=2, Mi=3, J=,4 V=5, S=6
+    const jsDay = new Date().getDay(); 
+    const dayMap = ["D","L", "M", "Mi", "J", "V", "S"];
     return dayMap[jsDay];
   };
-  // 🔹 Cargar hábitos del día actual
+  // Cargar hábitos del día actual
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -90,7 +87,7 @@ const styles = StyleSheet.create({});
     }, [user])
   );
 
-  // 🔹 Obtener logs de hoy
+  // Obtener logs de hoy
   const fetchTodayLogs = async (todayHabits) => {
     const todayKey = getTodayKey();
     const logsByHabit = {};
@@ -112,7 +109,7 @@ const styles = StyleSheet.create({});
     calculateProgress(todayHabits, logsByHabit);
   };
 
-  // 🔹 Calcular progreso global del día
+  // Calcular progreso global del día
   const calculateProgress = (todayHabits, logsByHabit) => {
     if (todayHabits.length === 0) return setProgress(0);
 
@@ -129,7 +126,7 @@ const styles = StyleSheet.create({});
     setProgress(total ? completed / total : 0);
   };
 
-  // 🔹 Incrementar conteo de veces completadas
+  // Incrementar conteo de veces completadas
   const handleToggleHabit = async (habit) => {
     try {
       const todayKey = getTodayKey();
@@ -158,7 +155,7 @@ const styles = StyleSheet.create({});
     }
   };
 
-  // 🔹 Renderizar cada hábito
+  // Renderizar cada hábito
   const renderHabit = ({ item }) => {
     const count = habitLogs[item.id] || 0;
     const ratio = count / item.timesPerDay;
@@ -186,6 +183,7 @@ const styles = StyleSheet.create({});
         { backgroundColor: theme.colors.background },
       ]}
     >
+      
       <ProgressBar progress={progress} color={theme.colors.secondary} />
 
       {loading ? (

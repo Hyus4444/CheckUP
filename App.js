@@ -8,7 +8,7 @@ import { AuthProvider } from "./src/contexts/AuthContext";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { Animated, StyleSheet } from "react-native";
 
-// 🔹 Componente envuelto para aplicar el fade de tema
+//Componente envuelto para aplicar el fade de tema
 function ThemedApp() {
   const { theme, fadeAnim } = useContext(ThemeContext);
 
@@ -18,7 +18,7 @@ function ThemedApp() {
         styles.container,
         {
           backgroundColor: theme.colors.background,
-          opacity: fadeAnim, // efecto de fade
+          opacity: fadeAnim, 
         },
       ]}
     >
