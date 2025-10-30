@@ -283,8 +283,9 @@ export const globalStyles = StyleSheet.create({
   calendar: {
     marginTop: 10,
     borderRadius: 12,
-    elevation: 2,
+    elevation: 6,
     overflow: "hidden",
+    
   },
 
 

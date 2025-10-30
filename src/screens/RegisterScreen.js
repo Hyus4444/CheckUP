@@ -81,12 +81,12 @@ export default function RegisterScreen({ navigation }) {
           onChangeText={setConfirm}
         />
 
-        <TouchableOpacity style={globalStyles.button} onPress={handleRegister}>
+        <TouchableOpacity style={[globalStyles.button, {flex:0}]} onPress={handleRegister}>
           <Text style={globalStyles.buttonText}>Registrarse</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text style={{ color: "#542AB4", marginTop: 20 }}>
+          <Text style={globalStyles.linkText}>
             ¿Ya tienes una cuenta? Inicia sesión
           </Text>
         </TouchableOpacity>

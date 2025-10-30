@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  View,
 } from "react-native";
 import { AuthContext } from "../contexts/AuthContext";
 import { globalStyles } from "../styles/globalStyles";
@@ -32,7 +33,10 @@ export default function LoginScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[globalStyles.container, { backgroundColor: "#fff", justifyContent: "flex-start" }]}
+      style={[
+        globalStyles.container,
+        { backgroundColor: "#fff", justifyContent: "flex-start" },
+      ]}
     >
       <ScrollView
         contentContainerStyle={{
@@ -50,7 +54,9 @@ export default function LoginScreen({ navigation }) {
           resizeMode="contain"
         />
 
-        <Text style={[globalStyles.title, { color: "#542AB4", marginBottom: 15 }]}>
+        <Text
+          style={[globalStyles.title, { color: "#542AB4", marginBottom: 15 }]}
+        >
           Bienvenido
         </Text>
 
@@ -68,16 +74,18 @@ export default function LoginScreen({ navigation }) {
           value={password}
           onChangeText={setPassword}
         />
+        
+          <TouchableOpacity style={[globalStyles.button, { justifyContent: 'center', flex : 0 }]}
+          onPress={handleLogin}>
+            <Text style={globalStyles.buttonText}>Iniciar sesion</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={globalStyles.button} onPress={handleLogin}>
-          <Text style={globalStyles.buttonText}>Iniciar sesion</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={{ color: "#542AB4", marginTop: 20 }}>
-            ¿No tienes una cuenta? Regístrate
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+            <Text style={globalStyles.linkText}>
+              ¿No tienes una cuenta? Regístrate
+            </Text>
+          </TouchableOpacity>
+        
       </ScrollView>
     </KeyboardAvoidingView>
   );
