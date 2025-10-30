@@ -3,7 +3,7 @@ import { TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { globalStyles } from "../styles/globalStyles";
 
-export default function FloatingButton({ onPress, color }) {
+export default function FloatingButton({ onPress }) {
   return (
     <TouchableOpacity
       style={[globalStyles.fab]}

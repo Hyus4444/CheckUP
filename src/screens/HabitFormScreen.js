@@ -12,12 +12,12 @@ import {
   Modal,
   FlatList,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { db } from "../services/firebase";
 import { doc, collection, addDoc } from "firebase/firestore";
 import { globalStyles } from "../styles/globalStyles";
-
 import HabitFormField from "../components/HabitFormField";
 import ColorSelector from "../components/ColorSelector";
 import DaySelector from "../components/DaySelector";
@@ -91,6 +91,8 @@ export default function HabitFormScreen({ navigation }) {
   const [timesPerDay, setTimesPerDay] = useState(1);
   const [notifications, setNotifications] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reminderTime, setReminderTime] = useState(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const toggleDay = (index) => {
     setFrequency((prev) =>
@@ -110,6 +112,10 @@ export default function HabitFormScreen({ navigation }) {
       Alert.alert("Error", "Selecciona al menos un día de la semana.");
       return;
     }
+    if (notifications && !reminderTime) {
+      Alert.alert("Error", "Selecciona una hora para el recordatorio.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -120,6 +126,7 @@ export default function HabitFormScreen({ navigation }) {
         frequency: frequency.map((i) => days[i]),
         timesPerDay,
         notifications,
+        reminderTime: notifications ? reminderTime?.toISOString() : null, // 👈 guardar solo si está activo
         completedCount: 0,
         createdAt: new Date(),
       };
@@ -189,7 +196,9 @@ export default function HabitFormScreen({ navigation }) {
                 { backgroundColor: theme.colors.surface },
               ]}
             >
-              <Text style={[globalStyles.modalTitle, { color: theme.colors.text }]}>
+              <Text
+                style={[globalStyles.modalTitle, { color: theme.colors.text }]}
+              >
                 Selecciona un ícono
               </Text>
               <FlatList
@@ -273,12 +282,59 @@ export default function HabitFormScreen({ navigation }) {
             onValueChange={setNotifications}
           />
         </View>
+        {/* Selector de hora de recordatorio */}
+        {notifications && (
+          <View style={{ marginTop: 15 }}>
+            <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+              Hora de recordatorio
+            </Text>
 
+            <TouchableOpacity
+              onPress={() => setShowTimePicker(true)}
+              style={[
+                globalStyles.timeButton,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
+            >
+              <Text style={{ color: theme.colors.text, fontSize: 16 }}>
+                {reminderTime
+                  ? reminderTime.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Seleccionar hora"}
+              </Text>
+            </TouchableOpacity>
+
+            {showTimePicker && (
+              <DateTimePicker
+                value={reminderTime || new Date()}
+                mode="time"
+                is24Hour={true}
+                display="default"
+                onChange={(event, selectedTime) => {
+                  setShowTimePicker(false);
+                  if (selectedTime) setReminderTime(selectedTime);
+                }}
+              />
+            )}
+          </View>
+        )}
+      </ScrollView>
+      <View
+        style={[
+          globalStyles.bottomButtonsContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         {/* Guardar */}
         <TouchableOpacity
           style={[
             globalStyles.button,
-            { marginTop: 30, opacity: saving ? 0.6 : 1 },
+            { marginTop: 5, opacity: saving ? 0.6 : 1 },
           ]}
           onPress={handleSave}
           disabled={saving}
@@ -287,8 +343,7 @@ export default function HabitFormScreen({ navigation }) {
             {saving ? "Guardando..." : "Guardar hábito"}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
-

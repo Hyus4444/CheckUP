@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  StyleSheet,
   ScrollView,
   Modal,
   FlatList,
@@ -16,7 +15,7 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { db } from "../services/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import HabitFormField from "../components/HabitFormField";
 import CounterInput from "../components/CounterInput";
 import { globalStyles } from "../styles/globalStyles";
@@ -142,6 +141,30 @@ export default function HabitEditScreen() {
       Alert.alert("Error", "No se pudieron guardar los cambios.");
     }
   };
+  const handleDelete = async () => {
+    Alert.alert(
+      "Eliminar hábito",
+      "¿Seguro que deseas eliminar este hábito? Esta acción no se puede deshacer.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const habitRef = doc(db, "users", user.uid, "habits", habitId);
+              await deleteDoc(habitRef);
+              Alert.alert("Eliminado", "El hábito ha sido eliminado.");
+              navigation.navigate("Home");
+            } catch (error) {
+              console.error("Error eliminando hábito:", error);
+              Alert.alert("Error", "No se pudo eliminar el hábito.");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (!habitData) {
     return (
@@ -257,14 +280,27 @@ export default function HabitEditScreen() {
             theme={theme}
           />
         </HabitFormField>
-
+      </ScrollView>
+      {/* Botones fijos en la parte inferior */}
+      <View
+        style={[
+          globalStyles.bottomButtonsContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <TouchableOpacity
           style={[globalStyles.button]}
           onPress={handleSaveChanges}
         >
           <Text style={globalStyles.buttonText}>Guardar cambios</Text>
         </TouchableOpacity>
-      </ScrollView>
+        <TouchableOpacity
+          style={[globalStyles.buttonRed]}
+          onPress={handleDelete}
+        >
+          <Text style={globalStyles.buttonText}>Eliminar</Text>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 }

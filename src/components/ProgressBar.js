@@ -1,4 +1,3 @@
-// simple ProgressBar que espera progress 0..1
 import React from "react";
 import { View, StyleSheet } from "react-native";
 

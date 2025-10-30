@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Switch,
-  StyleSheet,
   Alert,
 } from "react-native";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -40,42 +39,27 @@ export default function SettingsScreen() {
       ]}
     >
       {/*Opción de cambio de tema */}
-      <View style={styles.optionRow}>
-        <Text style={[styles.optionText, { color: theme.colors.text }]}>
+      <View style={globalStyles.optionRow}>
+        <Text style={[globalStyles.optionText, { color: theme.colors.text }]}>
           Tema oscuro
         </Text>
         <Switch
-          value={isDark} 
+          value={isDark}
           onValueChange={toggleTheme}
           thumbColor={isDark ? "#02A394" : "#f4f3f4"}
           trackColor={{ false: "#ccc", true: "#02A39477" }}
         />
       </View>
-
       {/*Botón de cerrar sesión */}
-      <TouchableOpacity
-        style={[
-          globalStyles.button,
-          { backgroundColor: "#E74C3C", marginTop: 40 },
-        ]}
-        onPress={handleLogout}
-      >
-        <Text style={globalStyles.buttonText}>Cerrar sesión</Text>
-      </TouchableOpacity>
+      <View style={globalStyles.optionRow}>
+        <TouchableOpacity
+          style={[globalStyles.buttonRed]}
+          onPress={handleLogout}
+        >
+          <Text style={globalStyles.buttonText}>Cerrar sesión</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  optionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 30,
-    paddingHorizontal: 5,
-  },
-  optionText: {
-    fontSize: 18,
-    fontWeight: "500",
-  },
-});

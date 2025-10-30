@@ -1,4 +1,3 @@
-// src/navigation/AppNavigator.js
 import React, { useContext } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -19,11 +18,13 @@ export default function AppNavigator() {
   const { user } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
 
-
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.background, text: theme.text },
+        headerStyle: {
+          backgroundColor: theme.colors.background,
+          text: theme.text,
+        },
         headerTintColor: theme.colors.text,
         headerShadowVisible: false,
         headerBackTitleVisible: false,
@@ -67,6 +68,17 @@ export default function AppNavigator() {
                   />
                 </TouchableOpacity>
               ),
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => (
+                  menu() //definir la función menu para que abra
+                )}>
+                  <Ionicons
+                    name="arrow-down-outline"
+                    size={30}
+                    color={theme.colors.primary}
+                  />
+                </TouchableOpacity>
+              ), 
             })}
           />
 
@@ -98,7 +110,7 @@ export default function AppNavigator() {
                 fontSize: 35,
                 fontWeight: "600",
               },
-              headerTintColor: theme.colors.primary, 
+              headerTintColor: theme.colors.primary,
             }}
           />
 

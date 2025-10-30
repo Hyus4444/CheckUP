@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
 import { bouncePress } from "../utils/animations";
+import { globalStyles } from "../styles/globalStyles";
 
 export default function HabitItem({
   item,
@@ -41,27 +42,27 @@ export default function HabitItem({
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: theme.colors.surface }]}
+      style={[globalStyles.card, { backgroundColor: theme.colors.surface }]}
       onPress={() => onOpen(item)}
       activeOpacity={0.8}
     >
-      <View style={styles.cardContent}>
+      <View style={globalStyles.cardContent}>
         {/* Izquierda: ícono + nombre */}
-        <View style={styles.leftSection}>
+        <View style={globalStyles.leftSection}>
           <View
             style={[
-              styles.emojiCircle,
+              globalStyles.emojiCircleCard,
               { backgroundColor: item.color || "#02A394" },
             ]}
           >
-            <Text style={styles.emoji}>{item.emoji}</Text>
+            <Text style={globalStyles.emojiCard}>{item.emoji}</Text>
           </View>
 
           <View>
-            <Text style={[styles.name, { color: theme.colors.text }]}>
+            <Text style={[globalStyles.name, { color: theme.colors.text }]}>
               {item.name}
             </Text>
-            <Text style={[styles.subtext, { color: theme.colors.text }]}>
+            <Text style={[globalStyles.subtext, { color: theme.colors.text }]}>
               {count}/{target} completado{target > 1 ? "s" : ""}
             </Text>
           </View>
@@ -71,7 +72,7 @@ export default function HabitItem({
         <Animated.View style={animatedStyle}>
           <TouchableOpacity
             style={[
-              styles.checkButton,
+              globalStyles.checkButton,
               {
                 borderColor: progress >= 1 ? item.color : theme.colors.text,
                 backgroundColor: progress >= 1 ? item.color : "transparent",
@@ -81,7 +82,7 @@ export default function HabitItem({
           >
             <Text
               style={[
-                styles.checkText,
+                globalStyles.checkText,
                 { color: progress >= 1 ? "#fff" : theme.colors.text },
               ]}
             >
@@ -94,13 +95,13 @@ export default function HabitItem({
       {/* Barra de progreso */}
       <View
         style={[
-          styles.progressContainer,
+          globalStyles.progressContainer,
           { backgroundColor: theme.colors.border },
         ]}
       >
         <Animated.View
           style={[
-            styles.progressBar,
+            globalStyles.progressBarCard,
             progressAnimatedStyle,
             { backgroundColor: item.color },
           ]}
@@ -110,54 +111,3 @@ export default function HabitItem({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 14,
-    padding: 14,
-    marginVertical: 8,
-    elevation: 2,
-  },
-  cardContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  leftSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  emojiCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  emoji: { fontSize: 26 },
-  name: { fontSize: 18, fontWeight: "600" },
-  subtext: { fontSize: 14, opacity: 0.7 },
-  checkButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkText: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  progressContainer: {
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-    marginTop: 10,
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 3,
-  },
-});

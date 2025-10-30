@@ -17,7 +17,6 @@ import {
   doc,
   updateDoc,
   setDoc,
-  deleteDoc,
   query,
   where,
   Timestamp,
@@ -204,6 +203,7 @@ export default function HomeScreen({ navigation }) {
           No tienes hábitos programados para hoy.
         </Text>
       ) : (
+        <View style={{ flex: 1, marginTop: 15 }}> 
         <FlatList
           data={habits}
           keyExtractor={(item) => item.id}
@@ -211,6 +211,7 @@ export default function HomeScreen({ navigation }) {
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         />
+        </View>
       )}
 
       <FloatingButton

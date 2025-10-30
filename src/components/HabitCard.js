@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
+import { TouchableOpacity, Text} from "react-native";
 import { globalStyles } from "../styles/globalStyles";
 
 export default function HabitCard({ item, onPress, theme }) {
@@ -11,7 +11,7 @@ export default function HabitCard({ item, onPress, theme }) {
         { backgroundColor: item.color || theme.colors.surface },
       ]}
     >
-      <Text style={globalStyles.emoji}>{item.emoji}</Text>
+      <Text style={globalStyles.emojiHabitCard}>{item.emoji}</Text>
       <Text
         style={[
           globalStyles.habitText,

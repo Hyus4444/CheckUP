@@ -1,5 +1,4 @@
 import { lightTheme, darkTheme } from "../styles/theme";
-// src/contexts/ThemeContext.js
 import React, { createContext, useState, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Animated, Easing } from "react-native";

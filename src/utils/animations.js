@@ -1,4 +1,3 @@
-// src/utils/animations.js
 import { withTiming, withSpring } from "react-native-reanimated";
 
 /**

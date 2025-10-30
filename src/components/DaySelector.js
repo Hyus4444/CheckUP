@@ -1,15 +1,17 @@
 import React from "react";
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { View, TouchableOpacity, Text} from "react-native";
+import { globalStyles } from "../styles/globalStyles";
 
 export default function DaySelector({ days, selectedDays, onToggle, theme }) {
   return (
-    <View style={styles.row}>
+    <View style={globalStyles.daysRow
+    }>
       {days.map((day, index) => (
         <TouchableOpacity
           key={index}
           onPress={() => onToggle(index)}
           style={[
-            styles.day,
+            globalStyles.dayCircle,
             {
               backgroundColor: selectedDays.includes(index)
                 ? theme.colors.secondary
@@ -33,18 +35,3 @@ export default function DaySelector({ days, selectedDays, onToggle, theme }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  day: {
-    flex: 1,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderRadius: 10,
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-});

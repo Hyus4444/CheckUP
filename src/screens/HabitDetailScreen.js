@@ -1,13 +1,12 @@
-// src/screens/HabitDetailScreen.js
 import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   ScrollView,
-  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
@@ -15,21 +14,16 @@ import { db } from "../services/firebase";
 import {
   doc,
   getDoc,
-  deleteDoc,
   collection,
   getDocs,
   query,
   where,
   Timestamp,
   doc as docRef,
-  getDocFromCache,
 } from "firebase/firestore";
 import ProgressBar from "../components/ProgressBar";
 import { Calendar } from "react-native-calendars";
 import { globalStyles } from "../styles/globalStyles";
-
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const BOTTOM_BUTTONS_HEIGHT = 84; // ajuste: espacio reservado para botones fijos
 
 export default function HabitDetailScreen({ route, navigation }) {
   const { theme } = useContext(ThemeContext);
@@ -92,14 +86,11 @@ export default function HabitDetailScreen({ route, navigation }) {
     };
   }, [habitId]);
 
+
   // computeProgress lee logs y calcula todayProgress y weeklyProgress
   const computeProgress = async (id, targetTimesPerDay = 1) => {
     try {
       const logsRef = collection(db, "users", user.uid, "habits", id, "logs");
-
-      // 1) obtener log de hoy. Soportamos dos esquemas:
-      // - documento con id = todayKey (setDoc(doc(logsRef, todayKey), {...}))
-      // - documento con campo dateKey == todayKey
       const todayKey = getTodayKey();
       let todayCountVal = 0;
 
@@ -135,6 +126,42 @@ export default function HabitDetailScreen({ route, navigation }) {
                 : d.completed
                 ? d.count || 1
                 : 0;
+
+            const marked = {};
+            Object.entries(dayMap).forEach(([date, value]) => {
+              const completionRatio = value.count / value.target; // entre 0 y 1
+
+              // Escala de intensidad: más claro = menos completado
+              const colorIntensity = Math.min(
+                255,
+                255 - Math.round(completionRatio * 120)
+              );
+              const bgColor =
+                completionRatio > 0
+                  ? `${habit.color}${Math.floor(255 - colorIntensity)
+                      .toString(16)
+                      .padStart(2, "0")}`
+                  : "transparent";
+
+              marked[date] = {
+                marked: value.count > 0,
+                dotColor: habit.color,
+                selected: completionRatio >= 1,
+                selectedColor: bgColor,
+                customStyles: {
+                  container: {
+                    backgroundColor: bgColor,
+                    borderRadius: 6,
+                  },
+                  text: {
+                    color: completionRatio > 0.5 ? "#fff" : theme.colors.text,
+                    fontWeight: completionRatio >= 1 ? "700" : "500",
+                  },
+                },
+              };
+            });
+
+            setMarkedDates(marked);
           }
         }
       } catch (err) {
@@ -155,10 +182,10 @@ export default function HabitDetailScreen({ route, navigation }) {
         }
       }
 
-      // 2) calcular progreso semanal: obtener logs >= sevenDaysAgo
+      //calcular progreso semanal: obtener logs >= sevenDaysAgo
       const today = new Date();
       const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 6); // últimos 7 días (incluye hoy)
+      sevenDaysAgo.setDate(today.getDate() - 6); 
       const q = query(
         logsRef,
         where("date", ">=", Timestamp.fromDate(sevenDaysAgo))
@@ -198,7 +225,7 @@ export default function HabitDetailScreen({ route, navigation }) {
         }
       });
 
-      // asegurar que consideramos 7 días (incluir días sin registro con count=0)
+      // asegurar que se consideran los 7 días (se incluyen días sin registro)
       const rates = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
@@ -225,31 +252,6 @@ export default function HabitDetailScreen({ route, navigation }) {
     }
   };
 
-  const handleDelete = async () => {
-    Alert.alert(
-      "Eliminar hábito",
-      "¿Seguro que deseas eliminar este hábito? Esta acción no se puede deshacer.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const habitRef = doc(db, "users", user.uid, "habits", habitId);
-              await deleteDoc(habitRef);
-              Alert.alert("Eliminado", "El hábito ha sido eliminado.");
-              navigation.goBack();
-            } catch (error) {
-              console.error("Error eliminando hábito:", error);
-              Alert.alert("Error", "No se pudo eliminar el hábito.");
-            }
-          },
-        },
-      ]
-    );
-  };
-
   if (loading) {
     return (
       <View
@@ -266,15 +268,14 @@ export default function HabitDetailScreen({ route, navigation }) {
   if (!habit) return null;
 
   return (
-    <View
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={[
         globalStyles.container,
         { backgroundColor: theme.colors.background },
       ]}
     >
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: BOTTOM_BUTTONS_HEIGHT + 20 }}
-      >
+      <ScrollView>
         {/* Encabezado */}
         <View style={globalStyles.header}>
           <Text style={[globalStyles.emojiDetails, { color: habit.color }]}>
@@ -291,7 +292,9 @@ export default function HabitDetailScreen({ route, navigation }) {
             Progreso hoy
           </Text>
           <ProgressBar progress={todayProgress} color={habit.color} />
-          <Text style={[globalStyles.percent, { color: theme.colors.text }]}>
+          <Text
+            style={[globalStyles.percentText, { color: theme.colors.text }]}
+          >
             {Math.round(todayProgress * 100)}% • {todayCount}/
             {habit.timesPerDay}
           </Text>
@@ -303,7 +306,9 @@ export default function HabitDetailScreen({ route, navigation }) {
             Progreso semanal
           </Text>
           <ProgressBar progress={weeklyProgress} color={habit.color} />
-          <Text style={[globalStyles.percent, { color: theme.colors.text }]}>
+          <Text
+            style={[globalStyles.percentText, { color: theme.colors.text }]}
+          >
             {Math.round(weeklyProgress * 100)}%
           </Text>
         </View>
@@ -338,7 +343,8 @@ export default function HabitDetailScreen({ route, navigation }) {
         {/* Notificaciones */}
         <View style={globalStyles.sectionDetails}>
           <Text style={[globalStyles.label, { color: theme.colors.text }]}>
-            Recordatorios: {habit.notifications ? "Activados" : "Desactivados"}
+            Recordatorios:{" "}
+            {habit.notifications ? "Activadas 🔔" : "Desactivadas 🔕"}
           </Text>
         </View>
         {/* --- Calendario de progreso --- */}
@@ -371,25 +377,12 @@ export default function HabitDetailScreen({ route, navigation }) {
         ]}
       >
         <TouchableOpacity
-          style={[
-            globalStyles.button,
-            { backgroundColor: habit.color, flex: 1, marginRight: 8 },
-          ]}
+          style={[globalStyles.button, { backgroundColor: habit.color }]}
           onPress={() => navigation.navigate("HabitEdit", { habitId })}
         >
           <Text style={globalStyles.buttonText}>Editar</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            globalStyles.button,
-            { backgroundColor: "#E74C3C", flex: 1, marginLeft: 8 },
-          ]}
-          onPress={handleDelete}
-        >
-          <Text style={globalStyles.buttonText}>Eliminar</Text>
-        </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

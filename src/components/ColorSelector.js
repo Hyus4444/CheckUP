@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity} from "react-native";
 import { globalStyles } from "../styles/globalStyles";
 
 export default function ColorSelector({ colors, selected, onSelect, theme }) {
