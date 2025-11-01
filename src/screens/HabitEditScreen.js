@@ -10,6 +10,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Switch,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -76,18 +77,24 @@ const emojiOptions = [
 export default function HabitEditScreen() {
   const { theme } = useContext(ThemeContext);
   const { user } = useContext(AuthContext);
+
   const route = useRoute();
   const navigation = useNavigation();
   const { habitId } = route.params;
-  const [emoji, setEmoji] = useState("");
-  const [habitData, setHabitData] = useState(null);
+
   const [name, setName] = useState("");
-  const [frequency, setFrequency] = useState([]);
-  const [timesPerDay, setTimesPerDay] = useState(1);
   const [color, setColor] = useState("#02A394");
+  const [emoji, setEmoji] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [habitData, setHabitData] = useState(null);
+  const [frequency, setFrequency] = useState([]);
+  const [notifications, setNotifications] = useState(false);
+  const [reminderTime, setReminderTime] = useState(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const [timesPerDay, setTimesPerDay] = useState(1);
   const incrementTimes = () => setTimesPerDay((prev) => Math.min(prev + 1, 10));
   const decrementTimes = () => setTimesPerDay((prev) => Math.max(prev - 1, 1));
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   //Cargar información del hábito existente
   useEffect(() => {
@@ -98,12 +105,15 @@ export default function HabitEditScreen() {
 
         if (habitSnap.exists()) {
           const data = habitSnap.data();
+          console.log("Hábito cargado:", data);
           setHabitData(data);
           setName(data.name || "");
           setFrequency(data.frequency || []);
           setTimesPerDay(data.timesPerDay || 1);
           setColor(data.color || "#02A394");
           setEmoji(data.emoji || "💧");
+          setNotifications(data.notifications || false);
+          setReminderTime(data.reminderTime || null);
         } else {
           Alert.alert("Error", "No se encontró el hábito.");
           navigation.goBack();
@@ -132,6 +142,8 @@ export default function HabitEditScreen() {
         timesPerDay,
         color,
         emoji,
+        notifications,
+        reminderTime,
       });
 
       Alert.alert("Éxito", "Los cambios se guardaron correctamente.");
@@ -271,6 +283,7 @@ export default function HabitEditScreen() {
           placeholder="Ej. Leer un libro"
           placeholderTextColor={theme.colors.border}
         />
+
         {/* Veces por día */}
         <HabitFormField label="Veces por día" theme={theme}>
           <CounterInput
@@ -280,6 +293,19 @@ export default function HabitEditScreen() {
             theme={theme}
           />
         </HabitFormField>
+
+        {/* Recordatorios */}
+        <View style={[globalStyles.row, { marginTop: 15 }]}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Activar recordatorios
+          </Text>
+          <Switch
+            trackColor={{ false: "#767577", true: theme.colors.secondary }}
+            thumbColor="#fff"
+            value={notifications}
+            onValueChange={setNotifications}
+          />
+        </View>
       </ScrollView>
       {/* Botones fijos en la parte inferior */}
       <View

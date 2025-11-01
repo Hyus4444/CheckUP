@@ -240,7 +240,7 @@ export const globalStyles = StyleSheet.create({
     marginBottom: 10,
   },
   emojiHabitCard: {
-    fontSize: 28,
+    fontSize: 35,
   },
 
 

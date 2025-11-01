@@ -55,7 +55,7 @@ export default function HabitItem({
               { backgroundColor: item.color || "#02A394" },
             ]}
           >
-            <Text style={globalStyles.emojiCard}>{item.emoji}</Text>
+            <Text style={globalStyles.emojiHabitCard}>{item.emoji}</Text>
           </View>
 
           <View>
