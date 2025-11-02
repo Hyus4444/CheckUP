@@ -19,7 +19,10 @@ import { db } from "../services/firebase";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import HabitFormField from "../components/HabitFormField";
 import CounterInput from "../components/CounterInput";
+import DaySelector from "../components/DaySelector";
+import ColorSelector from "../components/ColorSelector";
 import { globalStyles } from "../styles/globalStyles";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const presetColors = [
   "#542AB4",
@@ -30,6 +33,7 @@ const presetColors = [
   "#22A3AA",
   "#1AA59E",
   "#12A692",
+  "#0AA686",
   "#08A177",
   "#1F8E66",
   "#357B56",
@@ -74,6 +78,8 @@ const emojiOptions = [
   "🪴",
 ];
 
+const days = ["L", "M", "Mi", "J", "V", "S", "D"];
+
 export default function HabitEditScreen() {
   const { theme } = useContext(ThemeContext);
   const { user } = useContext(AuthContext);
@@ -96,6 +102,12 @@ export default function HabitEditScreen() {
   const incrementTimes = () => setTimesPerDay((prev) => Math.min(prev + 1, 10));
   const decrementTimes = () => setTimesPerDay((prev) => Math.max(prev - 1, 1));
 
+  const toggleDay = (index) => {
+    setFrequency((prev) =>
+      prev.includes(index) ? prev.filter((d) => d !== index) : [...prev, index]
+    );
+  };
+
   //Cargar información del hábito existente
   useEffect(() => {
     const fetchHabit = async () => {
@@ -105,15 +117,14 @@ export default function HabitEditScreen() {
 
         if (habitSnap.exists()) {
           const data = habitSnap.data();
-          console.log("Hábito cargado:", data);
           setHabitData(data);
-          setName(data.name || "");
-          setFrequency(data.frequency || []);
+          setName(data.name);
+          setFrequency(data.frequency);
           setTimesPerDay(data.timesPerDay || 1);
-          setColor(data.color || "#02A394");
-          setEmoji(data.emoji || "💧");
-          setNotifications(data.notifications || false);
-          setReminderTime(data.reminderTime || null);
+          setColor(data.color);
+          setEmoji(data.emoji);
+          setNotifications(data.notifications);
+          setReminderTime(data.reminderTime);
         } else {
           Alert.alert("Error", "No se encontró el hábito.");
           navigation.goBack();
@@ -133,15 +144,18 @@ export default function HabitEditScreen() {
       Alert.alert("Atención", "El nombre del hábito es obligatorio.");
       return;
     }
-
+    if (notifications && !reminderTime) {
+      Alert.alert("Error", "Selecciona una hora para el recordatorio.");
+      return;
+    }
     try {
       const habitRef = doc(db, "users", user.uid, "habits", habitId);
       await updateDoc(habitRef, {
         name,
+        emoji,
+        color,
         frequency,
         timesPerDay,
-        color,
-        emoji,
         notifications,
         reminderTime,
       });
@@ -266,23 +280,45 @@ export default function HabitEditScreen() {
             </View>
           </View>
         </Modal>
-        <Text style={[globalStyles.label, { color: theme.colors.text }]}>
-          Nombre del hábito
-        </Text>
-        <TextInput
-          style={[
-            globalStyles.input,
-            {
-              backgroundColor: theme.colors.card,
-              color: theme.colors.text,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          value={name}
-          onChangeText={setName}
-          placeholder="Ej. Leer un libro"
-          placeholderTextColor={theme.colors.border}
-        />
+
+        {/* Nombre */}
+        <HabitFormField label="Nombre del hábito" theme={theme}>
+          <TextInput
+            style={[
+              globalStyles.input,
+              {
+                borderColor: theme.colors.border,
+                color: theme.colors.text,
+                backgroundColor:
+                  theme.mode === "dark" ? theme.colors.surface : "#FFFFFF",
+              },
+            ]}
+            placeholder="Ejemplo: Leer 10 páginas"
+            placeholderTextColor={theme.colors.placeholder}
+            value={name}
+            onChangeText={setName}
+          />
+        </HabitFormField>
+
+        {/* Color */}
+        <HabitFormField label="Color del hábito" theme={theme}>
+          <ColorSelector
+            colors={presetColors}
+            selected={color}
+            onSelect={setColor}
+            theme={theme}
+          />
+        </HabitFormField>
+
+        {/* Días */}
+        <HabitFormField label="Días de la semana" theme={theme}>
+          <DaySelector
+            days={days}
+            selectedDays={frequency}
+            onToggle={toggleDay}
+            theme={theme}
+          />
+        </HabitFormField>
 
         {/* Veces por día */}
         <HabitFormField label="Veces por día" theme={theme}>
@@ -295,17 +331,57 @@ export default function HabitEditScreen() {
         </HabitFormField>
 
         {/* Recordatorios */}
-        <View style={[globalStyles.row, { marginTop: 15 }]}>
-          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
-            Activar recordatorios
-          </Text>
+        <HabitFormField label="Activar recordatorios" theme={theme}>
           <Switch
             trackColor={{ false: "#767577", true: theme.colors.secondary }}
             thumbColor="#fff"
             value={notifications}
             onValueChange={setNotifications}
           />
-        </View>
+        </HabitFormField>
+
+        {/* Selector de hora de recordatorio */}
+        <HabitFormField theme={theme}>
+          {notifications && (
+            <View>
+              <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+                Hora del recordatorio
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowTimePicker(true)}
+                style={[
+                  globalStyles.timeButton,
+                  {
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.surface,
+                  },
+                ]}
+              >
+                <Text style={{ color: theme.colors.text, fontSize: 18 }}>
+                  {reminderTime
+                    ? new Date(reminderTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Seleccionar hora"}
+                </Text>
+              </TouchableOpacity>
+
+              {showTimePicker && (
+                <DateTimePicker
+                  value={new Date(reminderTime) || new Date()}
+                  mode="time"
+                  is24Hour={true}
+                  display="default"
+                  onChange={(event, selectedTime) => {
+                    setShowTimePicker(false);
+                    if (selectedTime) setReminderTime(selectedTime);
+                  }}
+                />
+              )}
+            </View>
+          )}
+        </HabitFormField>
       </ScrollView>
       {/* Botones fijos en la parte inferior */}
       <View

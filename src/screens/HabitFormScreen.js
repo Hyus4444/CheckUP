@@ -126,8 +126,7 @@ export default function HabitFormScreen({ navigation }) {
         frequency: frequency.map((i) => days[i]),
         timesPerDay,
         notifications,
-        reminderTime: notifications ? reminderTime?.toISOString() : null, // 👈 guardar solo si está activo
-        completedCount: 0,
+        reminderTime: notifications ? reminderTime?.toISOString() : null,
         createdAt: new Date(),
       };
 
@@ -271,59 +270,59 @@ export default function HabitFormScreen({ navigation }) {
         </HabitFormField>
 
         {/* Recordatorios */}
-        <View style={[globalStyles.row, { marginTop: 15 }]}>
-          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
-            Activar recordatorios
-          </Text>
+        <HabitFormField label="Activar recordatorios" theme={theme}>
           <Switch
             trackColor={{ false: "#767577", true: theme.colors.secondary }}
             thumbColor="#fff"
             value={notifications}
             onValueChange={setNotifications}
           />
-        </View>
+        </HabitFormField>
+
         {/* Selector de hora de recordatorio */}
-        {notifications && (
-          <View style={{ marginTop: 15 }}>
-            <Text style={[globalStyles.label, { color: theme.colors.text }]}>
-              Hora de recordatorio
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => setShowTimePicker(true)}
-              style={[
-                globalStyles.timeButton,
-                {
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.surface,
-                },
-              ]}
-            >
-              <Text style={{ color: theme.colors.text, fontSize: 16 }}>
-                {reminderTime
-                  ? reminderTime.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Seleccionar hora"}
+        <HabitFormField theme={theme}>
+          {notifications && (
+            <View>
+              <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+                Hora del recordatorio
               </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowTimePicker(true)}
+                style={[
+                  globalStyles.timeButton,
+                  {
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.surface,
+                  },
+                ]}
+              >
+                <Text style={{ color: theme.colors.text, fontSize: 16 }}>
+                  {reminderTime
+                    ? reminderTime.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Seleccionar hora"}
+                </Text>
+              </TouchableOpacity>
 
-            {showTimePicker && (
-              <DateTimePicker
-                value={reminderTime || new Date()}
-                mode="time"
-                is24Hour={true}
-                display="default"
-                onChange={(event, selectedTime) => {
-                  setShowTimePicker(false);
-                  if (selectedTime) setReminderTime(selectedTime);
-                }}
-              />
-            )}
-          </View>
-        )}
+              {showTimePicker && (
+                <DateTimePicker
+                  value={reminderTime || new Date()}
+                  mode="time"
+                  is24Hour={true}
+                  display="default"
+                  onChange={(event, selectedTime) => {
+                    setShowTimePicker(false);
+                    if (selectedTime) setReminderTime(selectedTime);
+                  }}
+                />
+              )}
+            </View>
+          )}
+        </HabitFormField>
       </ScrollView>
+      {/* Botones fijos en la parte inferior */}
       <View
         style={[
           globalStyles.bottomButtonsContainer,

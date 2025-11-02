@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { db } from "../services/firebase";
@@ -47,45 +48,53 @@ export default function HabitDetailScreen({ route, navigation }) {
     return `${now.getFullYear()}-${M}-${now.getDate()}`;
   };
 
-  useEffect(() => {
-    let mounted = true;
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
 
-    const fetchHabitData = async () => {
-      try {
-        const habitRef = doc(db, "users", user.uid, "habits", habitId);
-        const habitSnap = await getDoc(habitRef);
+      const fetchHabitData = async () => {
+        try {
+          const habitRef = doc(db, "users", user.uid, "habits", habitId);
+          const habitSnap = await getDoc(habitRef);
 
-        if (!habitSnap.exists()) {
-          Alert.alert("Error", "El hábito no existe.");
-          navigation.goBack();
-          return;
+          if (!habitSnap.exists()) {
+            Alert.alert("Error", "El hábito no existe.");
+            navigation.goBack();
+            return;
+          }
+
+          const data = habitSnap.data();
+
+          // Formatear frecuencia manteniendo compatibilidad
+          const formattedFrequency = Array.isArray(data.frequency)
+            ? data.frequency.map((d) => (typeof d === "number" ? days[d] : d))
+            : [];
+
+          if (!mounted) return;
+
+          setHabit({
+            id: habitSnap.id,
+            ...data,
+            frequency: formattedFrequency,
+          });
+
+          // Recalcular progresos del día y semana
+          await computeProgress(habitId, data.timesPerDay || 1);
+        } catch (error) {
+          console.error("Error al cargar hábito:", error);
+          Alert.alert("Error", "No se pudo cargar la información del hábito.");
+        } finally {
+          if (mounted) setLoading(false);
         }
+      };
 
-        const data = habitSnap.data();
-        const formattedFrequency = Array.isArray(data.frequency)
-          ? data.frequency.map((d) => (typeof d === "number" ? days[d] : d))
-          : [];
+      fetchHabitData();
 
-        if (!mounted) return;
-        setHabit({ id: habitSnap.id, ...data, frequency: formattedFrequency });
-
-        // calcular progreso del día y de la semana
-        await computeProgress(habitId, data.timesPerDay || 1);
-      } catch (error) {
-        console.error("Error al cargar hábito:", error);
-        Alert.alert("Error", "No se pudo cargar la información del hábito.");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    fetchHabitData();
-
-    return () => {
-      mounted = false;
-    };
-  }, [habitId]);
-
+      return () => {
+        mounted = false;
+      };
+    }, [habitId])
+  );
 
   // computeProgress lee logs y calcula todayProgress y weeklyProgress
   const computeProgress = async (id, targetTimesPerDay = 1) => {
@@ -185,7 +194,7 @@ export default function HabitDetailScreen({ route, navigation }) {
       //calcular progreso semanal: obtener logs >= sevenDaysAgo
       const today = new Date();
       const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 6); 
+      sevenDaysAgo.setDate(today.getDate() - 6);
       const q = query(
         logsRef,
         where("date", ">=", Timestamp.fromDate(sevenDaysAgo))
