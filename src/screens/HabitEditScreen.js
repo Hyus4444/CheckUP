@@ -119,7 +119,15 @@ export default function HabitEditScreen() {
           const data = habitSnap.data();
           setHabitData(data);
           setName(data.name);
-          setFrequency(data.frequency);
+          // Normalizar frecuencia: convertir letras → índices
+          if (Array.isArray(data.frequency)) {
+            const mapped = data.frequency
+              .map((d) => days.indexOf(d))
+              .filter((i) => i !== -1);
+            setFrequency(mapped);
+          } else {
+            setFrequency([]);
+          }
           setTimesPerDay(data.timesPerDay || 1);
           setColor(data.color);
           setEmoji(data.emoji);
@@ -140,6 +148,7 @@ export default function HabitEditScreen() {
 
   // Actualizar hábito existente
   const handleSaveChanges = async () => {
+    const mappedFrequency = frequency.map((i) => days[i]);
     if (!name.trim()) {
       Alert.alert("Atención", "El nombre del hábito es obligatorio.");
       return;
@@ -154,7 +163,7 @@ export default function HabitEditScreen() {
         name,
         emoji,
         color,
-        frequency,
+        frequency: mappedFrequency, // <--- formateado correctamente
         timesPerDay,
         notifications,
         reminderTime,
