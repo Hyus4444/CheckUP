@@ -332,41 +332,46 @@ export const globalStyles = StyleSheet.create({
 
   // --- Estilos para el gráfico semanal de barras ---
   chartContainer: {
-  marginTop: 20,
-  marginBottom: 30,
-  paddingVertical: 10,
-  borderRadius: 16,
-  padding: 16,
-  alignItems: "center",
-  justifyContent: "center",
-},
+    marginTop: 20,
+    marginBottom: 30,
+    paddingVertical: 10,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-chart: {
-  marginTop: 10,
-  padding: 25,
-  borderRadius: 12,
-},
+  chart: {
+    marginTop: 10,
+    padding: 25,
+    borderRadius: 12,
+  },
 
-chartTitle: {
-  fontSize: 16,
-  fontWeight: "600",
-  marginBottom: 8,
-},
-chartWrapper: {
-  paddingHorizontal: 20,     
-  paddingBottom: 6,
-},
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  chartWrapper: {
+    paddingHorizontal: 20,
+    paddingBottom: 6,
+  },
 
-chartInner: {
-  alignItems: "center",      
-  justifyContent: "center",
-  width: "100%",
-},
+  chartInner: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
 
-barChart: {
-  alignSelf: "center",       
-  borderRadius: 12,
-  marginTop: 12,
-  paddingRight: 0,           
-},
+  barChart: {
+    alignSelf: "center",
+    borderRadius: 12,
+    marginTop: 12,
+    paddingRight: 0,
+  },
+  streakNumber: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginTop: 4,
+  },
 });

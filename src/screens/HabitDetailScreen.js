@@ -83,6 +83,8 @@ export default function HabitDetailScreen({ route, navigation }) {
             id: habitSnap.id,
             ...data,
             frequency: formattedFrequency,
+            streak: data.streak || 0,
+            bestStreak: data.bestStreak || 0,
           });
 
           // Recalcular progresos del día y semana
@@ -423,6 +425,29 @@ export default function HabitDetailScreen({ route, navigation }) {
               style={globalStyles.barChart}
             />
           </View>
+        </View>
+        {/* --- Rachas (streaks) --- */}
+        <View style={globalStyles.sectionDetails}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Racha actual
+          </Text>
+          <Text style={[globalStyles.streakNumber, { color: habit.color }]}>
+            🔥 {habit.streak || 0} día{habit.streak === 1 ? "" : "s"}
+          </Text>
+
+          <Text
+            style={[
+              globalStyles.label,
+              { color: theme.colors.text, marginTop: 10 },
+            ]}
+          >
+            Mejor racha
+          </Text>
+          <Text
+            style={[globalStyles.streakNumber, { color: theme.colors.primary }]}
+          >
+            🏆 {habit.bestStreak || 0} día{habit.bestStreak === 1 ? "" : "sdasda"}
+          </Text>
         </View>
       </ScrollView>
       {/* Botones fijos en la parte inferior */}

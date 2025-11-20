@@ -174,6 +174,53 @@ export default function HomeScreen({ navigation }) {
       console.error("Error al actualizar hábito:", error);
       Alert.alert("Error", "No se pudo actualizar el hábito.");
     }
+    // =============================
+    // CÁLCULO DE RACHAS (STREAKS)
+    // =============================
+    const habitDoc = await getDoc(habitRef);
+    const habitInfo = habitDoc.data();
+    let currentStreak = habitInfo.streak || 0;
+    let bestStreak = habitInfo.bestStreak || 0;
+    // 1. Ver si HOY ya está completado
+    const isTodayComplete = newCount >= habit.timesPerDay;
+    // 2. Obtener AYER
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const year = yesterdayDate.getFullYear();
+    const month = String(yesterdayDate.getMonth() + 1).padStart(2, "0");
+    const day = String(yesterdayDate.getDate()).padStart(2, "0");
+    const yesterdayKey = `${year}-${month}-${day}`;
+    // 3. Buscar progreso de AYER
+    const yesterdayRef = doc(
+      db,
+      "users",
+      user.uid,
+      "habits",
+      habit.id,
+      "logs",
+      yesterdayKey
+    );
+    const yesterdaySnap = await getDoc(yesterdayRef);
+    let wasYesterdayComplete = false;
+    if (yesterdaySnap.exists()) {
+      const yData = yesterdaySnap.data();
+      const yCount = yData.count || 0;
+      wasYesterdayComplete = yCount >= habit.timesPerDay;
+    }
+    // 4. Calcular nueva racha
+    let newStreak = 0;
+    if (isTodayComplete) {
+      newStreak = wasYesterdayComplete ? currentStreak + 1 : 1;
+    } else {
+      newStreak = 0;
+    }
+    // 5. Actualizar best streak
+    const newBestStreak = Math.max(bestStreak, newStreak);
+    // 6. Guardar en Firestore
+    await updateDoc(habitRef, {
+      streak: newStreak,
+      bestStreak: newBestStreak,
+    });
   };
 
   // Renderizar cada hábito
