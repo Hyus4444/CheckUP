@@ -446,7 +446,7 @@ export default function HabitDetailScreen({ route, navigation }) {
           <Text
             style={[globalStyles.streakNumber, { color: theme.colors.primary }]}
           >
-            🏆 {habit.bestStreak || 0} día{habit.bestStreak === 1 ? "" : "sdasda"}
+            🏆 {habit.bestStreak || 0} día{habit.bestStreak === 1 ? "" : ""}
           </Text>
         </View>
       </ScrollView>
