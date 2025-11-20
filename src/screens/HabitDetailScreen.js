@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
-  SCREEN_WIDTH
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -33,14 +32,13 @@ export default function HabitDetailScreen({ route, navigation }) {
   const { theme } = useContext(ThemeContext);
   const { user } = useContext(AuthContext);
   const { habitId } = route.params;
-
-  const [habit, setHabit] = useState(null);
   const [todayProgress, setTodayProgress] = useState(0); // 0..1
   const [weeklyProgress, setWeeklyProgress] = useState(0); // 0..1
   const [weekRates, setWeekRates] = useState([]);
   const [todayCount, setTodayCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [markedDates, setMarkedDates] = useState({});
+  const [habit, setHabit] = useState(null);
 
   // Construir objeto para Calendar
   const days = ["L", "M", "Mi", "J", "V", "S", "D"];
@@ -111,8 +109,9 @@ export default function HabitDetailScreen({ route, navigation }) {
       const logsRef = collection(db, "users", user.uid, "habits", id, "logs");
       const todayKey = getTodayKey();
       let todayCountVal = 0;
-
-      // intentar obtener doc con id = todayKey
+      /** ================================
+       *  1. CARGAR PROGRESO DE HOY
+       * ================================ */
       try {
         const todayDocRef = docRef(
           db,
@@ -124,6 +123,7 @@ export default function HabitDetailScreen({ route, navigation }) {
           todayKey
         );
         const todaySnap = await getDoc(todayDocRef);
+
         if (todaySnap.exists()) {
           const d = todaySnap.data();
           todayCountVal =
@@ -133,7 +133,6 @@ export default function HabitDetailScreen({ route, navigation }) {
               ? d.count || 1
               : 0;
         } else {
-          // fallback: búsqueda por campo dateKey
           const q1 = query(logsRef, where("dateKey", "==", todayKey));
           const snap1 = await getDocs(q1);
           if (!snap1.empty) {
@@ -144,97 +143,42 @@ export default function HabitDetailScreen({ route, navigation }) {
                 : d.completed
                 ? d.count || 1
                 : 0;
-
-            const marked = {};
-            Object.entries(dayMap).forEach(([date, value]) => {
-              const completionRatio = value.count / value.target; // entre 0 y 1
-
-              // Escala de intensidad:
-              const colorIntensity = Math.min(
-                255,
-                255 - Math.round(completionRatio * 120)
-              );
-              const bgColor =
-                completionRatio > 0
-                  ? `${habit.color}${Math.floor(255 - colorIntensity)
-                      .toString(16)
-                      .padStart(2, "0")}`
-                  : "transparent";
-
-              marked[date] = {
-                marked: value.count > 0,
-                dotColor: habit.color,
-                selected: completionRatio >= 1,
-                selectedColor: bgColor,
-                customStyles: {
-                  container: {
-                    backgroundColor: bgColor,
-                    borderRadius: 6,
-                  },
-                  text: {
-                    color: completionRatio > 0.5 ? "#fff" : theme.colors.text,
-                    fontWeight: completionRatio >= 1 ? "700" : "500",
-                  },
-                },
-              };
-            });
-
-            setMarkedDates(marked);
           }
         }
       } catch (err) {
-        console.warn(
-          "No se obtuvo doc by id for todayKey, buscando por campo...",
-          err
-        );
-        const q1 = query(logsRef, where("dateKey", "==", todayKey));
-        const snap1 = await getDocs(q1);
-        if (!snap1.empty) {
-          const d = snap1.docs[0].data();
-          todayCountVal =
-            typeof d.count === "number"
-              ? d.count
-              : d.completed
-              ? d.count || 1
-              : 0;
-        }
+        console.warn("Error obteniendo progreso del día:", err);
       }
 
-      //calcular progreso semanal: obtener logs >= sevenDaysAgo
+      /** ========================================
+       *  2. OBTENER LOGS DE LOS ÚLTIMOS 7 DÍAS
+       * ======================================== */
       const today = new Date();
       const sevenDaysAgo = new Date(today);
       sevenDaysAgo.setDate(today.getDate() - 6);
+
       const q = query(
         logsRef,
         where("date", ">=", Timestamp.fromDate(sevenDaysAgo))
       );
       const snap = await getDocs(q);
 
-      // construimos un map dateKey -> {count, target}
+      /** ========================================
+       *  3. MAP DE FECHAS PARA CALENDARIO & BARRAS
+       * ======================================== */
+
       const dayMap = new Map();
-      const marked = {};
-      dayMap.forEach((value, key) => {
-        marked[key] = {
-          marked: true,
-          dotColor: habit.color,
-          selected: value.count >= value.target,
-          selectedColor: habit.color,
-        };
-      });
-      setMarkedDates(marked);
       snap.docs.forEach((docu) => {
         const d = docu.data();
-        // dateKey preferido, si no, extraer ISO date de timestamp
-        const key =
-          d.dateKey ||
-          (d.date &&
-            d.date.toDate &&
-            d.date.toDate().toISOString().split("T")[0]) ||
-          null;
+        // Usar siempre dateKey guardado
+        let key = d.dateKey;
+        // Si no existe (raro), generarlo desde date con hora local
+        if (!key && d.date?.toDate) {
+          key = d.date.toDate().toLocaleDateString("en-CA"); // YYYY-MM-DD
+        }
         if (!key) return;
-        const count = typeof d.count === "number" ? d.count : d.count ? 1 : 0;
+        const count =
+          typeof d.count === "number" ? d.count : d.completed ? 1 : 0;
         const target = d.target || targetTimesPerDay;
-        // si hay varios logs para el mismo día, acumulamos (por si acaso)
         const prev = dayMap.get(key);
         if (prev) {
           dayMap.set(key, { count: prev.count + count, target });
@@ -243,29 +187,86 @@ export default function HabitDetailScreen({ route, navigation }) {
         }
       });
 
-      // asegurar que se consideran los 7 días (se incluyen días sin registro)
-      const rates = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        const key = d.toISOString().split("T")[0];
-        const rec = dayMap.get(key);
-        const count = rec ? rec.count : 0;
-        const target = rec ? rec.target : targetTimesPerDay;
-        const rate = target > 0 ? Math.min(count / target, 1) : 0;
-        rates.push(rate);
-      }
+      /** ===================
+       *  4. CALENDARIO
+       * ====================*/
+      const marked = {};
 
-      const weekly = rates.reduce((s, r) => s + r, 0) / 7;
+      dayMap.forEach((value, key) => {
+        const completionRatio = Math.min(value.count / value.target, 1);
+
+        const colorIntensity = 255 - Math.round(completionRatio * 120);
+        const bgColor =
+          completionRatio > 0
+            ? `${habit?.color ?? "#02A394"}${Math.floor(255 - colorIntensity)
+                .toString(16)
+                .padStart(2, "0")}`
+            : "transparent";
+
+        marked[key] = {
+          marked: value.count > 0,
+          selected: completionRatio >= 1,
+          selectedColor: bgColor,
+          customStyles: {
+            container: {
+              backgroundColor: bgColor,
+              borderRadius: 6,
+            },
+            text: {
+              color: completionRatio > 0.5 ? "#fff" : theme.colors.text,
+              fontWeight: completionRatio >= 1 ? "700" : "500",
+            },
+          },
+        };
+      });
+
+      setMarkedDates(marked);
+      /** ============================================================
+       *  5. CÁLCULO PARA GRÁFICO → LUNES A DOMINGO
+       * ============================================================ */
+      const weekRates = [0, 0, 0, 0, 0, 0, 0]; // L, M, Mi, J, V, S, D
+
+      dayMap.forEach((value, key) => {
+        // Crear fecha asegurando uso de hora local
+        const parts = key.split("-"); // YYYY-MM-DD
+        const jsDate = new Date(
+          Number(parts[0]),
+          Number(parts[1]) - 1,
+          Number(parts[2])
+        );
+
+        // Día de la semana en local: 0=Dom, 1=Lun, ..., 6=Sáb
+        const weekday = jsDate.getDay();
+
+        // Ajuste de índices: lunes = 0, domingo = 6
+        const adjustedIndex = weekday === 0 ? 6 : weekday - 1;
+
+        const completionRatio = Math.min(value.count / value.target, 1);
+
+        weekRates[adjustedIndex] = completionRatio;
+      });
+
+      /** ========================================
+       *  6. PROGRESO SEMANAL (PROMEDIO)
+       * ======================================== */
+      const weekly =
+        weekRates.reduce((sum, r) => sum + r, 0) / weekRates.length || 0;
+
+      /** ========================================
+       *  7. PROGRESO DE HOY
+       * ======================================== */
       const todayProgressVal =
         targetTimesPerDay > 0
           ? Math.min(todayCountVal / targetTimesPerDay, 1)
           : 0;
 
+      /** ========================================
+       *  8. SET STATES FINALES
+       * ======================================== */
       setTodayCount(todayCountVal);
       setTodayProgress(todayProgressVal);
       setWeeklyProgress(weekly);
-      setWeekRates(rates);
+      setWeekRates(weekRates);
     } catch (error) {
       console.error("Error calculando progreso:", error);
     }
@@ -376,6 +377,8 @@ export default function HabitDetailScreen({ route, navigation }) {
               dayTextColor: theme.colors.text,
               monthTextColor: theme.colors.text,
               arrowColor: habit.color,
+              dotColor: habit.color,
+              bgColor: theme.colors.background,
               selectedDayBackgroundColor: habit.color,
               todayTextColor: habit.color,
             }}
@@ -387,7 +390,6 @@ export default function HabitDetailScreen({ route, navigation }) {
           <Text style={[globalStyles.label, { color: theme.colors.text }]}>
             Resumen semanal
           </Text>
-
           <View style={globalStyles.chartInner}>
             <BarChart
               data={{
