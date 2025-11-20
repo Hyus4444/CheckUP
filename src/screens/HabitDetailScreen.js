@@ -7,6 +7,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
+  SCREEN_WIDTH
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -22,6 +24,7 @@ import {
   Timestamp,
   doc as docRef,
 } from "firebase/firestore";
+import { BarChart } from "react-native-chart-kit";
 import ProgressBar from "../components/ProgressBar";
 import { Calendar } from "react-native-calendars";
 import { globalStyles } from "../styles/globalStyles";
@@ -34,18 +37,24 @@ export default function HabitDetailScreen({ route, navigation }) {
   const [habit, setHabit] = useState(null);
   const [todayProgress, setTodayProgress] = useState(0); // 0..1
   const [weeklyProgress, setWeeklyProgress] = useState(0); // 0..1
+  const [weekRates, setWeekRates] = useState([]);
   const [todayCount, setTodayCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [markedDates, setMarkedDates] = useState({});
-  // Construir objeto para Calendar
 
+  // Construir objeto para Calendar
   const days = ["L", "M", "Mi", "J", "V", "S", "D"];
 
-  // formato de clave para doc por día (consistente con HomeScreen)
+  //calcular ancho de la ventana para el gráfico
+  const SCREEN_WIDTH = Dimensions.get("window").width;
+
+  // formato de clave para doc por día
   const getTodayKey = () => {
     const now = new Date();
-    const M = now.getMonth() + 1;
-    return `${now.getFullYear()}-${M}-${now.getDate()}`;
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   useFocusEffect(
@@ -140,7 +149,7 @@ export default function HabitDetailScreen({ route, navigation }) {
             Object.entries(dayMap).forEach(([date, value]) => {
               const completionRatio = value.count / value.target; // entre 0 y 1
 
-              // Escala de intensidad: más claro = menos completado
+              // Escala de intensidad:
               const colorIntensity = Math.min(
                 255,
                 255 - Math.round(completionRatio * 120)
@@ -256,6 +265,7 @@ export default function HabitDetailScreen({ route, navigation }) {
       setTodayCount(todayCountVal);
       setTodayProgress(todayProgressVal);
       setWeeklyProgress(weekly);
+      setWeekRates(rates);
     } catch (error) {
       console.error("Error calculando progreso:", error);
     }
@@ -294,7 +304,6 @@ export default function HabitDetailScreen({ route, navigation }) {
             {habit.name}
           </Text>
         </View>
-
         {/* --- Hoy: barra principal (progreso del día) --- */}
         <View style={globalStyles.sectionDetails}>
           <Text style={[globalStyles.label, { color: theme.colors.text }]}>
@@ -308,7 +317,6 @@ export default function HabitDetailScreen({ route, navigation }) {
             {habit.timesPerDay}
           </Text>
         </View>
-
         {/* --- Progreso semanal (resumen) --- */}
         <View style={globalStyles.sectionDetails}>
           <Text style={[globalStyles.label, { color: theme.colors.text }]}>
@@ -340,7 +348,6 @@ export default function HabitDetailScreen({ route, navigation }) {
             ))}
           </View>
         </View>
-
         {/* Veces por día */}
         <View style={globalStyles.sectionDetails}>
           <Text style={[globalStyles.label, { color: theme.colors.text }]}>
@@ -348,7 +355,6 @@ export default function HabitDetailScreen({ route, navigation }) {
             <Text style={globalStyles.label}>{habit.timesPerDay}</Text>
           </Text>
         </View>
-
         {/* Notificaciones */}
         <View style={globalStyles.sectionDetails}>
           <Text style={[globalStyles.label, { color: theme.colors.text }]}>
@@ -376,8 +382,47 @@ export default function HabitDetailScreen({ route, navigation }) {
             markedDates={markedDates}
           />
         </View>
-      </ScrollView>
+        {/* --- Gráfico semanal --- */}
+        <View style={[globalStyles.sectionDetails, globalStyles.chartWrapper]}>
+          <Text style={[globalStyles.label, { color: theme.colors.text }]}>
+            Resumen semanal
+          </Text>
 
+          <View style={globalStyles.chartInner}>
+            <BarChart
+              data={{
+                labels: ["L", "M", "Mi", "J", "V", "S", "D"],
+                datasets: [
+                  {
+                    data:
+                      weekRates.length > 0
+                        ? weekRates.map((r) => Math.round(r * 100))
+                        : [0, 0, 0, 0, 0, 0, 0],
+                  },
+                ],
+              }}
+              width={Math.min(SCREEN_WIDTH - 40, 720)} // ancho controlado y responsivo
+              height={300}
+              fromZero={true}
+              showValuesOnTopOfBars={true}
+              withInnerLines={false}
+              withOuterLines={false}
+              withHorizontalLabels={false}
+              chartConfig={{
+                backgroundColor: "transparent",
+                backgroundGradientFrom: theme.colors.background,
+                backgroundGradientTo: theme.colors.background,
+                decimalPlaces: 0,
+                color: () => habit.color,
+                labelColor: () => theme.colors.text,
+                barPercentage: 1.2,
+                propsForBackgroundLines: { strokeWidth: 0 },
+              }}
+              style={globalStyles.barChart}
+            />
+          </View>
+        </View>
+      </ScrollView>
       {/* Botones fijos en la parte inferior */}
       <View
         style={[

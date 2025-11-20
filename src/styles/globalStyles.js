@@ -1,7 +1,6 @@
 import { StyleSheet } from "react-native";
 
 export const globalStyles = StyleSheet.create({
-
   /* Styles Globales */
   container: {
     flex: 1,
@@ -37,7 +36,6 @@ export const globalStyles = StyleSheet.create({
     padding: 10,
     alignItems: "center",
   },
-
 
   /* Styles de texto*/
   title: {
@@ -111,7 +109,6 @@ export const globalStyles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-
   /* Styles botones generales*/
   button: {
     width: "100%",
@@ -144,7 +141,6 @@ export const globalStyles = StyleSheet.create({
     marginTop: 15,
   },
 
-
   /* Styles crear - editar habito */
   modalContainer: {
     flex: 1,
@@ -164,6 +160,7 @@ export const globalStyles = StyleSheet.create({
   },
   sectionDetails: {
     marginBottom: 20,
+    alignContent: "center",
   },
   daysRow: {
     flexDirection: "row",
@@ -187,7 +184,6 @@ export const globalStyles = StyleSheet.create({
     alignItems: "center",
   },
 
-
   /* Styles selector de colores */
   containerColor: {
     flexDirection: "row",
@@ -200,7 +196,6 @@ export const globalStyles = StyleSheet.create({
     borderRadius: 30,
     margin: 4,
   },
-
 
   /* Styles de Input contador*/
   containerCounterInput: {
@@ -229,7 +224,6 @@ export const globalStyles = StyleSheet.create({
     backgroundColor: "#02A394",
   },
 
-
   /* Styles Habit Card*/
   habitCard: {
     flexDirection: "row",
@@ -243,13 +237,11 @@ export const globalStyles = StyleSheet.create({
     fontSize: 35,
   },
 
-
   /* Styles contenedor del Form*/
   containerFormHabit: {
     marginVertical: 10,
     marginHorizontal: 10,
   },
-
 
   /* Conteneder de botones inferior styles */
   bottomButtonsContainer: {
@@ -264,7 +256,6 @@ export const globalStyles = StyleSheet.create({
     borderTopColor: "#00000010",
   },
 
-
   /* Styles Time Selector */
   timeButton: {
     borderWidth: 1,
@@ -278,16 +269,13 @@ export const globalStyles = StyleSheet.create({
     marginHorizontal: 60,
   },
 
-
   /* Calendar styles */
   calendar: {
     marginTop: 10,
     borderRadius: 12,
     elevation: 6,
     overflow: "hidden",
-    
   },
-
 
   /* Styles  Habit Item */
   card: {
@@ -332,7 +320,6 @@ export const globalStyles = StyleSheet.create({
     height: "100%",
     borderRadius: 3,
   },
-  
 
   /* Styles Opciones*/
   optionRow: {
@@ -342,4 +329,44 @@ export const globalStyles = StyleSheet.create({
     marginTop: 30,
     paddingHorizontal: 5,
   },
+
+  // --- Estilos para el gráfico semanal de barras ---
+  chartContainer: {
+  marginTop: 20,
+  marginBottom: 30,
+  paddingVertical: 10,
+  borderRadius: 16,
+  padding: 16,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+chart: {
+  marginTop: 10,
+  padding: 25,
+  borderRadius: 12,
+},
+
+chartTitle: {
+  fontSize: 16,
+  fontWeight: "600",
+  marginBottom: 8,
+},
+chartWrapper: {
+  paddingHorizontal: 20,     
+  paddingBottom: 6,
+},
+
+chartInner: {
+  alignItems: "center",      
+  justifyContent: "center",
+  width: "100%",
+},
+
+barChart: {
+  alignSelf: "center",       
+  borderRadius: 12,
+  marginTop: 12,
+  paddingRight: 0,           
+},
 });
