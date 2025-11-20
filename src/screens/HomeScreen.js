@@ -11,6 +11,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { ThemeContext } from "../contexts/ThemeContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { db } from "../services/firebase";
+import { motivationalPhrases } from "../data/motivationalPhrases";
 import {
   collection,
   getDocs,
@@ -56,10 +57,16 @@ export default function HomeScreen({ navigation }) {
         try {
           const habitsRef = collection(db, "users", user.uid, "habits");
           const snapshot = await getDocs(habitsRef);
-          const allHabits = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          const allHabits = snapshot.docs.map((doc) => {
+            const data = doc.data();
+
+            return {
+              id: doc.id,
+              ...data,
+              // Asegurar que frequency SIEMPRE sea un array
+              frequency: Array.isArray(data.frequency) ? data.frequency : [],
+            };
+          });
 
           const todayIndex = getCurrentDayIndex();
           const todayHabits = allHabits.filter((habit) =>
@@ -141,6 +148,16 @@ export default function HomeScreen({ navigation }) {
       const currentCount = habitLogs[habit.id] || 0;
       const newCount = currentCount < habit.timesPerDay ? currentCount + 1 : 0; // reset si supera el límite
 
+      await updateDoc(habitRef, { completedCount: newCount });
+      if (currentCount < habit.timesPerDay && newCount === habit.timesPerDay) {
+        const randomPhrase =
+          motivationalPhrases[
+            Math.floor(Math.random() * motivationalPhrases.length)
+          ];
+
+        Alert.alert(randomPhrase);
+      }
+
       const logData = {
         date: Timestamp.fromDate(new Date()),
         dateKey: todayKey,
@@ -199,18 +216,18 @@ export default function HomeScreen({ navigation }) {
           style={{ marginTop: 20 }}
         />
       ) : habits.length === 0 ? (
-        <Text style={[globalStyles.label, {color:theme.colors.text}]}>
+        <Text style={[globalStyles.label, { color: theme.colors.text }]}>
           No tienes hábitos programados para hoy.
         </Text>
       ) : (
-        <View style={{ flex: 1, marginTop: 15 }}> 
-        <FlatList
-          data={habits}
-          keyExtractor={(item) => item.id}
-          renderItem={renderHabit}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={{ flex: 1, marginTop: 15 }}>
+          <FlatList
+            data={habits}
+            keyExtractor={(item) => item.id}
+            renderItem={renderHabit}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+          />
         </View>
       )}
 
@@ -221,5 +238,3 @@ export default function HomeScreen({ navigation }) {
     </View>
   );
 }
-
-
